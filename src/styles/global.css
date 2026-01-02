@@ -406,6 +406,10 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .admin-action:hover,

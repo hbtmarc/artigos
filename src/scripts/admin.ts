@@ -10,6 +10,7 @@ import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Post } from '../lib/posts/types';
+import { withBase } from '../lib/withBase';
 
 type PostInput = {
   id: string;
@@ -189,6 +190,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     editButton.dataset.id = post.id;
     editButton.textContent = 'Editar';
 
+    const viewLink = document.createElement('a');
+    viewLink.className = 'admin-action';
+    viewLink.href = withBase(`p/${post.id}/`);
+    viewLink.textContent = 'Ver';
+
     const deleteButton = document.createElement('button');
     deleteButton.type = 'button';
     deleteButton.className = 'admin-action is-danger';
@@ -196,7 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     deleteButton.dataset.id = post.id;
     deleteButton.textContent = 'Excluir';
 
-    actions.append(editButton, deleteButton);
+    actions.append(editButton, viewLink, deleteButton);
 
     row.append(titleCell, statusCell, typeCell, updatedCell, actions);
     return row;
