@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { posts } from '../data/posts';
+
+const base = import.meta.env.BASE_URL;
+---
+<BaseLayout title="Artigos" description="Leituras longas e ensaios visuais para inspirar." >
+  <section class="hero">
+    <h1>Artigos longos, ideias com calma.</h1>
+    <p>
+      Um laboratorio de leitura lenta, textos em andamento e anotacoes organizadas para
+      virar publicado com consistencia.
+    </p>
+  </section>
+
+  <h2 class="section-title">Em destaque</h2>
+  <div class="post-list">
+    {posts.map((post) => (
+      <article class="post-card">
+        <h3>
+          <a href={`${base}posts/${post.slug}/`}>{post.title}</a>
+        </h3>
+        <p>{post.summary}</p>
+      </article>
+    ))}
+  </div>
+</BaseLayout>

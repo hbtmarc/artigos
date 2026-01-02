@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { posts } from '../../data/posts';
+
+const base = import.meta.env.BASE_URL;
+
+export function getStaticPaths() {
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: post
+  }));
+}
+
+const { slug, title, summary } = Astro.props;
+---
+<BaseLayout title={`${title} | Artigos`} description={summary}>
+  <article>
+    <h1>{title}</h1>
+    <p class="placeholder">
+      Este e um placeholder para o artigo <strong>{slug}</strong>. Em breve entra o texto
+      completo com imagens, notas de rodape e referencias cruzadas.
+    </p>
+    <p>
+      <a href={`${base}`}>Voltar para a home</a>
+    </p>
+  </article>
+</BaseLayout>

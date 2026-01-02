@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const base = import.meta.env.BASE_URL;
+---
+<BaseLayout title="Admin | Artigos" description="Area administrativa em construcao.">
+  <section class="placeholder">
+    <h1>Admin</h1>
+    <p>
+      Espaco reservado para o painel de gestao. Aqui entram autenticacao,
+      publicacao e configuracoes.
+    </p>
+    <p>
+      <a href={`${base}`}>Voltar para a home</a>
+    </p>
+  </section>
+</BaseLayout>
