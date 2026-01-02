@@ -2,24 +2,30 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function isAdmin() {
-      return request.auth != null
+      return isSignedIn()
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
     }
 
-    match /posts/{postId} {
-      // Public can read only published posts; admins can read anything.
-      allow read: if resource.data.status == "published" || isAdmin();
-      // Writes are restricted to admins.
-      allow write: if isAdmin();
+    match /admins/{uid} {
+      // Permite o usuario ler somente o proprio documento de admin.
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      // Nao deixa o client escrever.
+      allow write: if false;
     }
 
-    match /admins/{adminId} {
-      // Only admins can read admin documents.
-      allow read: if isAdmin();
-      // Writes are blocked; manage manually in the console.
-      allow write: if false;
+    match /posts/{postId} {
+      allow read: if resource.data.status == "published" || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
