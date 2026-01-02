@@ -3,15 +3,187 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 const base = import.meta.env.BASE_URL;
 ---
-<BaseLayout title="Admin | Artigos" description="Area administrativa em construcao.">
-  <section class="placeholder">
-    <h1>Admin</h1>
-    <p>
-      Espaco reservado para o painel de gestao. Aqui entram autenticacao,
-      publicacao e configuracoes.
-    </p>
-    <p>
-      <a href={`${base}`}>Voltar para a home</a>
-    </p>
+<BaseLayout title="Admin | Artigos" description="Area administrativa com acesso restrito.">
+  <section class="admin-panel">
+    <div class="admin-card">
+      <header class="admin-header">
+        <p class="section-title">Admin</p>
+        <h1>Acesso editorial</h1>
+        <p class="admin-subtitle">Login restrito para edicao e publicacao.</p>
+      </header>
+
+      <div class="admin-alert" role="status" aria-live="polite" data-alert hidden></div>
+
+      <div class="admin-state" data-signed-out>
+        <form class="admin-form" data-login-form>
+          <label class="admin-field">
+            <span>Email</span>
+            <input class="admin-input" type="email" name="email" autocomplete="email" required data-email />
+          </label>
+          <label class="admin-field">
+            <span>Senha</span>
+            <input
+              class="admin-input"
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              required
+              minlength="6"
+              data-password
+            />
+          </label>
+          <button class="admin-button" type="submit">Entrar</button>
+        </form>
+        <button class="admin-link" type="button" data-reset>Esqueci minha senha</button>
+      </div>
+
+      <div class="admin-state" data-signed-in hidden>
+        <p class="admin-meta"><strong>Email:</strong> <span data-user-email></span></p>
+        <p class="admin-meta"><strong>UID:</strong> <span data-user-uid></span></p>
+        <p class="admin-meta"><strong>Admin:</strong> <span data-admin-status>-</span></p>
+        <p class="admin-note" data-admin-note hidden>
+          Crie um documento admins/{SEU_UID} com { active: true } no Firestore.
+        </p>
+        <button class="admin-button" type="button" data-sign-out>Sair</button>
+      </div>
+
+      <p class="admin-back">
+        <a href={`${base}`}>Voltar para a home</a>
+      </p>
+    </div>
   </section>
+
+  <script type="module">
+    import {
+      signInWithEmailAndPassword,
+      sendPasswordResetEmail,
+      onAuthStateChanged,
+      signOut
+    } from 'firebase/auth';
+    import { doc, getDoc } from 'firebase/firestore';
+    import { auth, db } from '../lib/firebase/client';
+
+    const alertEl = document.querySelector('[data-alert]');
+    const signedOutEl = document.querySelector('[data-signed-out]');
+    const signedInEl = document.querySelector('[data-signed-in]');
+    const emailEl = document.querySelector('[data-email]');
+    const passwordEl = document.querySelector('[data-password]');
+    const loginForm = document.querySelector('[data-login-form]');
+    const resetButton = document.querySelector('[data-reset]');
+    const signOutButton = document.querySelector('[data-sign-out]');
+    const userEmailEl = document.querySelector('[data-user-email]');
+    const userUidEl = document.querySelector('[data-user-uid]');
+    const adminStatusEl = document.querySelector('[data-admin-status]');
+    const adminNoteEl = document.querySelector('[data-admin-note]');
+
+    const errorMessages = {
+      'auth/wrong-password': 'Senha incorreta. Tente novamente.',
+      'auth/user-not-found': 'Usuario nao encontrado para este email.',
+      'auth/unauthorized-domain':
+        'Dominio nao autorizado. Adicione este dominio nas configuracoes do Firebase.',
+      'auth/invalid-email': 'Email invalido. Verifique e tente novamente.',
+      'auth/too-many-requests':
+        'Muitas tentativas. Aguarde alguns minutos antes de tentar de novo.'
+    };
+
+    const setAlert = (message, kind = 'info') => {
+      if (!alertEl) return;
+      if (!message) {
+        alertEl.textContent = '';
+        alertEl.hidden = true;
+        alertEl.dataset.kind = '';
+        return;
+      }
+      alertEl.textContent = message;
+      alertEl.hidden = false;
+      alertEl.dataset.kind = kind;
+    };
+
+    const getErrorMessage = (error) => {
+      if (!error || typeof error !== 'object') return 'Nao foi possivel concluir.';
+      const code = error.code || '';
+      return errorMessages[code] || 'Nao foi possivel concluir.';
+    };
+
+    const setAdminState = (isAdmin) => {
+      if (adminStatusEl) adminStatusEl.textContent = isAdmin ? 'SIM' : 'NAO';
+      if (adminNoteEl) adminNoteEl.hidden = isAdmin;
+    };
+
+    const checkAdmin = async (uid) => {
+      try {
+        const snapshot = await getDoc(doc(db, 'admins', uid));
+        const data = snapshot.exists() ? snapshot.data() : null;
+        setAdminState(Boolean(data && data.active === true));
+      } catch (error) {
+        setAdminState(false);
+        setAlert('Nao foi possivel verificar permissao de admin.', 'error');
+      }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (signedOutEl) signedOutEl.hidden = true;
+        if (signedInEl) signedInEl.hidden = false;
+        if (userEmailEl) userEmailEl.textContent = user.email || '-';
+        if (userUidEl) userUidEl.textContent = user.uid;
+        setAlert('Login ativo.', 'success');
+        checkAdmin(user.uid);
+      } else {
+        if (signedOutEl) signedOutEl.hidden = false;
+        if (signedInEl) signedInEl.hidden = true;
+        if (userEmailEl) userEmailEl.textContent = '';
+        if (userUidEl) userUidEl.textContent = '';
+        if (adminStatusEl) adminStatusEl.textContent = '-';
+        if (adminNoteEl) adminNoteEl.hidden = true;
+        setAlert('', 'info');
+      }
+    });
+
+    if (loginForm) {
+      loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const email = emailEl?.value?.trim();
+        const password = passwordEl?.value || '';
+        if (!email || !password) {
+          setAlert('Preencha email e senha para entrar.', 'error');
+          return;
+        }
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          setAlert('Login realizado.', 'success');
+          if (passwordEl) passwordEl.value = '';
+        } catch (error) {
+          setAlert(getErrorMessage(error), 'error');
+        }
+      });
+    }
+
+    if (resetButton) {
+      resetButton.addEventListener('click', async () => {
+        const email = emailEl?.value?.trim();
+        if (!email) {
+          setAlert('Informe o email para enviar o reset.', 'error');
+          return;
+        }
+        try {
+          await sendPasswordResetEmail(auth, email);
+          setAlert('Email de recuperacao enviado.', 'success');
+        } catch (error) {
+          setAlert(getErrorMessage(error), 'error');
+        }
+      });
+    }
+
+    if (signOutButton) {
+      signOutButton.addEventListener('click', async () => {
+        try {
+          await signOut(auth);
+          setAlert('Sessao encerrada.', 'info');
+        } catch (error) {
+          setAlert(getErrorMessage(error), 'error');
+        }
+      });
+    }
+  </script>
 </BaseLayout>
