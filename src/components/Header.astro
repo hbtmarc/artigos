@@ -1,14 +1,18 @@
 ---
-const base = import.meta.env.BASE_URL;
+import { withBase } from '../lib/withBase';
+
+const homeHref = withBase('');
+const postsHref = withBase('posts/artigo-exemplo/');
+const adminHref = withBase('admin/');
 ---
 <header class="site-header">
   <div class="brand">
-    <a class="brand-title" href={`${base}`}>Artigos</a>
+    <a class="brand-title" href={homeHref}>Artigos</a>
     <p class="brand-tagline">Notas longas sobre produto, design e tecnologia.</p>
   </div>
   <nav class="site-nav" aria-label="Principal">
-    <a href={`${base}`}>Home</a>
-    <a href={`${base}posts/artigo-exemplo/`}>Posts</a>
-    <a href={`${base}admin/`}>Admin</a>
+    <a href={homeHref}>Home</a>
+    <a href={postsHref}>Posts</a>
+    <a href={adminHref}>Admin</a>
   </nav>
 </header>

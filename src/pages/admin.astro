@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/withBase';
 
-const base = import.meta.env.BASE_URL;
+const homeHref = withBase('');
 ---
 <BaseLayout title="Admin | Artigos" description="Area administrativa com acesso restrito.">
   <section class="admin-panel">
@@ -42,13 +43,14 @@ const base = import.meta.env.BASE_URL;
         <p class="admin-meta"><strong>UID:</strong> <span data-user-uid></span></p>
         <p class="admin-meta"><strong>Admin:</strong> <span data-admin-status>-</span></p>
         <p class="admin-note" data-admin-note hidden>
-          Crie um documento admins/{SEU_UID} com { active: true } no Firestore.
+          Crie um documento <code>admins/&#123;SEU_UID&#125;</code> com
+          <code>&#123; active: true &#125;</code> no Firestore.
         </p>
         <button class="admin-button" type="button" data-sign-out>Sair</button>
       </div>
 
       <p class="admin-back">
-        <a href={`${base}`}>Voltar para a home</a>
+        <a href={homeHref}>Voltar para a home</a>
       </p>
     </div>
   </section>

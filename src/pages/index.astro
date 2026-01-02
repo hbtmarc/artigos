@@ -1,9 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
+import { withBase } from '../lib/withBase';
 
-const base = import.meta.env.BASE_URL;
 const allPosts = await getCollection('posts', (post) => post.data.status === 'published');
+const homeHref = withBase('');
 const validTypes = ['artigo', 'roteiro', 'plano-diretor'] as const;
 const typeParam = Astro.url.searchParams.get('type') ?? '';
 const selectedType = validTypes.includes(typeParam as (typeof validTypes)[number])
@@ -45,7 +46,7 @@ const visiblePosts =
     <div class="filter-chips">
       {filterOptions.map((option) => {
         const isActive = option.value === selectedType;
-        const href = option.value === 'all' ? base : `${base}?type=${option.value}`;
+        const href = option.value === 'all' ? homeHref : `${homeHref}?type=${option.value}`;
         return (
           <a
             class={`filter-chip ${isActive ? 'is-active' : ''}`}
@@ -73,7 +74,7 @@ const visiblePosts =
           </span>
         </div>
         <h3>
-          <a href={`${base}posts/${post.slug}/`}>{post.data.title}</a>
+          <a href={withBase(`posts/${post.slug}/`)}>{post.data.title}</a>
         </h3>
         {post.data.subtitle && <p class="post-subtitle">{post.data.subtitle}</p>}
         <p class="post-excerpt">{post.data.excerpt}</p>
