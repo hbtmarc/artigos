@@ -53,6 +53,25 @@ main {
   margin: 0 auto;
 }
 
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.reading-progress-bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+
 .site-header {
   display: flex;
   flex-direction: column;
@@ -128,6 +147,52 @@ main {
   margin: 2.5rem 0 1rem;
 }
 
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.filter-label {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chip {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--ring);
+  border-radius: 999px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.7);
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.filter-chip:hover,
+.filter-chip:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-chip.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
 .post-list {
   display: grid;
   gap: 1.25rem;
@@ -138,6 +203,34 @@ main {
   border: 1px solid var(--ring);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: 100%;
+}
+
+.post-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.post-badge {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--ring);
+  color: var(--ink);
+}
+
+.post-date {
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 .post-card h3 {
@@ -148,6 +241,206 @@ main {
 .post-card p {
   margin: 0;
   color: var(--muted);
+}
+
+.post-card .post-excerpt {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.tag-chip {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(196, 107, 59, 0.12);
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.post-card .post-subtitle {
+  margin: 0 0 0.5rem;
+}
+
+.post-layout {
+  display: grid;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.post-content {
+  min-width: 0;
+  max-width: 70ch;
+}
+
+.post-aside {
+  display: none;
+}
+
+.post-body {
+  line-height: 1.85;
+  font-size: 1.05rem;
+}
+
+.post-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.post-header {
+  margin-bottom: 2rem;
+}
+
+.post-type {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--ring);
+  color: var(--ink);
+}
+
+.post-subtitle {
+  margin: 0.5rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.post-meta {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.post-share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 2rem 0 1.5rem;
+}
+
+.share-button {
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--ring);
+  background: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.share-button:hover,
+.share-button:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.post-back {
+  margin: 0;
+}
+
+.toc {
+  border: 1px solid var(--ring);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 1rem 1.1rem;
+}
+
+.toc summary {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  list-style: none;
+}
+
+.toc summary::-webkit-details-marker {
+  display: none;
+}
+
+.toc-title {
+  margin: 0 0 0.75rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.toc-item a {
+  color: var(--ink);
+}
+
+.toc-item.is-sub {
+  padding-left: 0.85rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.toc-mobile {
+  margin: 1.5rem 0 2rem;
+}
+
+.toc-desktop {
+  display: none;
+  position: sticky;
+  top: 6rem;
+}
+
+.post-cover {
+  margin: 1.5rem 0;
+}
+
+.post-cover img {
+  border-radius: 14px;
+  border: 1px solid var(--ring);
+}
+
+.post-cover figcaption {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.post-body h2,
+.post-body h3 {
+  margin-top: 2rem;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.post-body h3 {
+  margin-top: 1.5rem;
+}
+
+.post-body p {
+  margin: 1rem 0;
+}
+
+.post-body ul {
+  padding-left: 1.2rem;
 }
 
 .placeholder {
@@ -168,6 +461,12 @@ main {
     font-size: 1.1rem;
   }
 
+  .filter-bar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   .site-header {
     flex-direction: row;
     justify-content: space-between;
@@ -181,5 +480,29 @@ main {
 
   .hero h1 {
     font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .post-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 980px) {
+  .post-layout {
+    grid-template-columns: minmax(0, 1fr) 240px;
+  }
+
+  .post-aside {
+    display: block;
+  }
+
+  .toc-mobile {
+    display: none;
+  }
+
+  .toc-desktop {
+    display: block;
   }
 }

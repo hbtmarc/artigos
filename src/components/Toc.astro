@@ -1,0 +1,19 @@
+---
+type Heading = {
+  depth: number;
+  slug: string;
+  text: string;
+};
+
+const { headings = [] } = Astro.props as { headings?: Heading[] };
+const items = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+---
+{items.length > 0 && (
+  <ul class="toc-list">
+    {items.map((heading) => (
+      <li class={`toc-item ${heading.depth === 3 ? 'is-sub' : ''}`}>
+        <a href={`#${heading.slug}`}>{heading.text}</a>
+      </li>
+    ))}
+  </ul>
+)}

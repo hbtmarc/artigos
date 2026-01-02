@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="pt-BR"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Um plano diretor para guiar temas, cadencia e manutencao editorial."><title>Plano diretor exemplo | Artigos</title><link rel="stylesheet" href="/artigos/_astro/admin.Tx4Bi6FF.css"></head> <body> <header class="site-header"> <div class="brand"> <a class="brand-title" href="/artigos">Artigos</a> <p class="brand-tagline">Notas longas sobre produto, design e tecnologia.</p> </div> <nav class="site-nav" aria-label="Principal"> <a href="/artigos">Home</a> <a href="/artigosposts/artigo-exemplo/">Posts</a> <a href="/artigosadmin/">Admin</a> </nav> </header> <main> <div class="container">  <div class="reading-progress" aria-hidden="true"> <span class="reading-progress-bar" data-reading-progress></span> </div> <section class="post-layout"> <article class="post-content"> <header class="post-header"> <div class="post-meta-row"> <span class="post-type">Plano Diretor</span> <span class="post-date">11 de jun. de 2024</span> </div> <h1>Plano diretor exemplo</h1> <p class="post-subtitle">Roteiro macro para o blog</p> <p class="post-meta">Por Marcelino</p> <div class="tag-chips" aria-label="Tags"> <span class="tag-chip">estrategia</span><span class="tag-chip">backlog</span> </div> <figure class="post-cover"> <img src="https://images.unsplash.com/photo-1485217988980-11786ced9454" alt="Plano diretor exemplo" loading="lazy"> <figcaption>Foto: Annie Spratt / Unsplash</figcaption> </figure> </header> <details class="toc toc-mobile"> <summary>Indice</summary> <ul class="toc-list"><li class="toc-item "><a href="#norte-editorial">Norte editorial</a></li><li class="toc-item is-sub"><a href="#principios">Principios</a></li><li class="toc-item "><a href="#cadencia">Cadencia</a></li><li class="toc-item is-sub"><a href="#ciclos-de-publicacao">Ciclos de publicacao</a></li><li class="toc-item is-sub"><a href="#revisoes-periodicas">Revisoes periodicas</a></li><li class="toc-item "><a href="#manutencao">Manutencao</a></li></ul> </details> <div class="post-body"> <h2 id="norte-editorial">Norte editorial</h2>
+<p>O plano diretor define a missao do blog e o tipo de leitura desejada.</p>
+<h3 id="principios">Principios</h3>
+<p>Coerencia, pesquisa cuidadosa e linguagem objetiva.</p>
+<h2 id="cadencia">Cadencia</h2>
+<p>A cadencia organiza a frequencia de publicacao sem sobrecarregar a equipe.</p>
+<h3 id="ciclos-de-publicacao">Ciclos de publicacao</h3>
+<p>Separar ciclos de pesquisa, escrita e revisao.</p>
+<h3 id="revisoes-periodicas">Revisoes periodicas</h3>
+<p>Revisar textos antigos e atualizar referencias chave.</p>
+<h2 id="manutencao">Manutencao</h2>
+<p>Manter um backlog vivo ajuda a planejar novas series e aprofundar temas.</p> </div> <div class="post-share"> <a class="share-button" href="https://wa.me/?text=Plano%20diretor%20exemplo%20-%20https%3A%2F%2Fhbtmarc.github.io%2Fartigos%2Fposts%2Fplano-diretor-exemplo%2F" target="_blank" rel="noopener noreferrer">
+WhatsApp
+</a> <button class="share-button" type="button" data-copy-link="https://hbtmarc.github.io/artigos/posts/plano-diretor-exemplo/">
+Copiar link
+</button> </div> <p class="post-back"> <a href="/artigos">Voltar para a home</a> </p> </article> <aside class="post-aside"> <div class="toc toc-desktop"> <p class="toc-title">Indice</p> <ul class="toc-list"><li class="toc-item "><a href="#norte-editorial">Norte editorial</a></li><li class="toc-item is-sub"><a href="#principios">Principios</a></li><li class="toc-item "><a href="#cadencia">Cadencia</a></li><li class="toc-item is-sub"><a href="#ciclos-de-publicacao">Ciclos de publicacao</a></li><li class="toc-item is-sub"><a href="#revisoes-periodicas">Revisoes periodicas</a></li><li class="toc-item "><a href="#manutencao">Manutencao</a></li></ul> </div> </aside> </section> <script>
+    const progressBar = document.querySelector('[data-reading-progress]');
+    const updateProgress = () => {
+      if (!progressBar) return;
+      const doc = document.documentElement;
+      const scrollTop = doc.scrollTop || document.body.scrollTop;
+      const scrollHeight = doc.scrollHeight - doc.clientHeight;
+      const ratio = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
+      const percent = Math.min(100, Math.max(0, ratio * 100));
+      progressBar.style.width = `${percent}%`;
+    };
+
+    const scheduleProgress = () => window.requestAnimationFrame(updateProgress);
+    window.addEventListener('scroll', scheduleProgress, { passive: true });
+    window.addEventListener('resize', scheduleProgress);
+    updateProgress();
+
+    const copyButton = document.querySelector('[data-copy-link]');
+    const copyText = async (text) => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    };
+
+    if (copyButton) {
+      const defaultLabel = copyButton.textContent || 'Copiar link';
+      copyButton.addEventListener('click', async () => {
+        const url = copyButton.getAttribute('data-copy-link') || window.location.href;
+        try {
+          await copyText(url);
+          copyButton.textContent = 'Link copiado';
+          setTimeout(() => {
+            copyButton.textContent = defaultLabel;
+          }, 2000);
+        } catch (error) {
+          copyButton.textContent = 'Nao foi possivel copiar';
+          setTimeout(() => {
+            copyButton.textContent = defaultLabel;
+          }, 2000);
+        }
+      });
+    }
+  </script>  </div> </main> <footer class="site-footer"> <div class="container"> <p>(c) 2026 Artigos. Editorial em construcao.</p> </div> </footer> </body></html>

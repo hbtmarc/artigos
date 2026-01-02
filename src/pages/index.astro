@@ -1,8 +1,34 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { posts } from '../data/posts';
+import { getCollection } from 'astro:content';
 
 const base = import.meta.env.BASE_URL;
+const allPosts = await getCollection('posts', (post) => post.data.status === 'published');
+const validTypes = ['artigo', 'roteiro', 'plano-diretor'] as const;
+const typeParam = Astro.url.searchParams.get('type') ?? '';
+const selectedType = validTypes.includes(typeParam as (typeof validTypes)[number])
+  ? typeParam
+  : 'all';
+const typeLabels = {
+  artigo: 'Artigo',
+  roteiro: 'Roteiro',
+  'plano-diretor': 'Plano Diretor'
+} as const;
+const filterOptions = [
+  { label: 'Todos', value: 'all' },
+  { label: 'Artigos', value: 'artigo' },
+  { label: 'Roteiros', value: 'roteiro' },
+  { label: 'Planos Diretores', value: 'plano-diretor' }
+];
+const getSortDate = (post) =>
+  (post.data.publishedAt ?? post.data.updatedAt ?? new Date(0)).getTime();
+const formatDate = (date) =>
+  new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date);
+const posts = [...allPosts].sort((a, b) => getSortDate(b) - getSortDate(a));
+const visiblePosts =
+  selectedType === 'all'
+    ? posts
+    : posts.filter((post) => post.data.type === selectedType);
 ---
 <BaseLayout title="Artigos" description="Leituras longas e ensaios visuais para inspirar." >
   <section class="hero">
@@ -14,14 +40,74 @@ const base = import.meta.env.BASE_URL;
   </section>
 
   <h2 class="section-title">Em destaque</h2>
+  <section class="filter-bar">
+    <p class="filter-label">Filtrar por tipo</p>
+    <div class="filter-chips">
+      {filterOptions.map((option) => {
+        const isActive = option.value === selectedType;
+        const href = option.value === 'all' ? base : `${base}?type=${option.value}`;
+        return (
+          <a
+            class={`filter-chip ${isActive ? 'is-active' : ''}`}
+            href={href}
+            data-filter-chip={option.value}
+            aria-current={isActive ? 'page' : undefined}
+          >
+            {option.label}
+          </a>
+        );
+      })}
+    </div>
+  </section>
   <div class="post-list">
-    {posts.map((post) => (
-      <article class="post-card">
+    {visiblePosts.map((post) => (
+      <article class="post-card" data-post-type={post.data.type}>
+        <div class="post-card-header">
+          <span class="post-badge">{typeLabels[post.data.type]}</span>
+          <span class="post-date">
+            {post.data.publishedAt
+              ? formatDate(post.data.publishedAt)
+              : post.data.updatedAt
+                ? formatDate(post.data.updatedAt)
+                : 'Sem data'}
+          </span>
+        </div>
         <h3>
-          <a href={`${base}posts/${post.slug}/`}>{post.title}</a>
+          <a href={`${base}posts/${post.slug}/`}>{post.data.title}</a>
         </h3>
-        <p>{post.summary}</p>
+        {post.data.subtitle && <p class="post-subtitle">{post.data.subtitle}</p>}
+        <p class="post-excerpt">{post.data.excerpt}</p>
+        {post.data.tags.length > 0 && (
+          <div class="tag-chips" aria-label="Tags">
+            {post.data.tags.map((tag) => (
+              <span class="tag-chip">{tag}</span>
+            ))}
+          </div>
+        )}
       </article>
     ))}
   </div>
+  <script is:inline>
+    const validTypes = new Set(['artigo', 'roteiro', 'plano-diretor']);
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get('type');
+    const selected = validTypes.has(type) ? type : 'all';
+
+    document.querySelectorAll('[data-filter-chip]').forEach((chip) => {
+      const value = chip.getAttribute('data-filter-chip');
+      const isActive = (selected === 'all' && value === 'all') || value === selected;
+      chip.classList.toggle('is-active', isActive);
+      if (isActive) {
+        chip.setAttribute('aria-current', 'page');
+      } else {
+        chip.removeAttribute('aria-current');
+      }
+    });
+
+    document.querySelectorAll('[data-post-type]').forEach((card) => {
+      const cardType = card.getAttribute('data-post-type');
+      const show = selected === 'all' || cardType === selected;
+      card.style.display = show ? '' : 'none';
+    });
+  </script>
 </BaseLayout>

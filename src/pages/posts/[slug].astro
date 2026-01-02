@@ -1,27 +1,151 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { posts } from '../../data/posts';
+import Toc from '../../components/Toc.astro';
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 
-const base = import.meta.env.BASE_URL;
-
-export function getStaticPaths() {
-  return posts.map((post) => ({
-    params: { slug: post.slug },
-    props: post
+export async function getStaticPaths() {
+  const entries = await getCollection('posts', (post) => post.data.status === 'published');
+  return entries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry }
   }));
 }
 
-const { slug, title, summary } = Astro.props;
+const { entry } = Astro.props as { entry: CollectionEntry<'posts'> };
+const { Content, headings } = await entry.render();
+const base = import.meta.env.BASE_URL;
+const postDate = entry.data.publishedAt ?? entry.data.updatedAt;
+const postDateLabel = postDate
+  ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(postDate)
+  : 'Sem data';
+const typeLabels = {
+  artigo: 'Artigo',
+  roteiro: 'Roteiro',
+  'plano-diretor': 'Plano Diretor'
+} as const;
+const postTypeLabel = typeLabels[entry.data.type];
+const hasToc = headings.some((heading) => heading.depth === 2 || heading.depth === 3);
+const shareUrl = Astro.site
+  ? new URL(Astro.url.pathname, Astro.site).toString()
+  : Astro.url.toString();
+const shareText = `${entry.data.title} - ${shareUrl}`;
+const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 ---
-<BaseLayout title={`${title} | Artigos`} description={summary}>
-  <article>
-    <h1>{title}</h1>
-    <p class="placeholder">
-      Este e um placeholder para o artigo <strong>{slug}</strong>. Em breve entra o texto
-      completo com imagens, notas de rodape e referencias cruzadas.
-    </p>
-    <p>
-      <a href={`${base}`}>Voltar para a home</a>
-    </p>
-  </article>
+<BaseLayout title={`${entry.data.title} | Artigos`} description={entry.data.excerpt}>
+  <div class="reading-progress" aria-hidden="true">
+    <span class="reading-progress-bar" data-reading-progress></span>
+  </div>
+  <section class="post-layout">
+    <article class="post-content">
+      <header class="post-header">
+        <div class="post-meta-row">
+          <span class="post-type">{postTypeLabel}</span>
+          <span class="post-date">{postDateLabel}</span>
+        </div>
+        <h1>{entry.data.title}</h1>
+        {entry.data.subtitle && <p class="post-subtitle">{entry.data.subtitle}</p>}
+        <p class="post-meta">Por {entry.data.author}</p>
+        {entry.data.tags.length > 0 && (
+          <div class="tag-chips" aria-label="Tags">
+            {entry.data.tags.map((tag) => (
+              <span class="tag-chip">{tag}</span>
+            ))}
+          </div>
+        )}
+        {entry.data.coverImageUrl && (
+          <figure class="post-cover">
+            <img src={entry.data.coverImageUrl} alt={entry.data.title} loading="lazy" />
+            {entry.data.coverCredits && <figcaption>{entry.data.coverCredits}</figcaption>}
+          </figure>
+        )}
+      </header>
+
+      {hasToc && (
+        <details class="toc toc-mobile">
+          <summary>Indice</summary>
+          <Toc headings={headings} />
+        </details>
+      )}
+
+      <div class="post-body">
+        <Content />
+      </div>
+
+      <div class="post-share">
+        <a class="share-button" href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+          WhatsApp
+        </a>
+        <button class="share-button" type="button" data-copy-link={shareUrl}>
+          Copiar link
+        </button>
+      </div>
+
+      <p class="post-back">
+        <a href={`${base}`}>Voltar para a home</a>
+      </p>
+    </article>
+
+    {hasToc && (
+      <aside class="post-aside">
+        <div class="toc toc-desktop">
+          <p class="toc-title">Indice</p>
+          <Toc headings={headings} />
+        </div>
+      </aside>
+    )}
+  </section>
+
+  <script is:inline>
+    const progressBar = document.querySelector('[data-reading-progress]');
+    const updateProgress = () => {
+      if (!progressBar) return;
+      const doc = document.documentElement;
+      const scrollTop = doc.scrollTop || document.body.scrollTop;
+      const scrollHeight = doc.scrollHeight - doc.clientHeight;
+      const ratio = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
+      const percent = Math.min(100, Math.max(0, ratio * 100));
+      progressBar.style.width = `${percent}%`;
+    };
+
+    const scheduleProgress = () => window.requestAnimationFrame(updateProgress);
+    window.addEventListener('scroll', scheduleProgress, { passive: true });
+    window.addEventListener('resize', scheduleProgress);
+    updateProgress();
+
+    const copyButton = document.querySelector('[data-copy-link]');
+    const copyText = async (text) => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    };
+
+    if (copyButton) {
+      const defaultLabel = copyButton.textContent || 'Copiar link';
+      copyButton.addEventListener('click', async () => {
+        const url = copyButton.getAttribute('data-copy-link') || window.location.href;
+        try {
+          await copyText(url);
+          copyButton.textContent = 'Link copiado';
+          setTimeout(() => {
+            copyButton.textContent = defaultLabel;
+          }, 2000);
+        } catch (error) {
+          copyButton.textContent = 'Nao foi possivel copiar';
+          setTimeout(() => {
+            copyButton.textContent = defaultLabel;
+          }, 2000);
+        }
+      });
+    }
+  </script>
 </BaseLayout>
