@@ -55,6 +55,46 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.hidden {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════
+   Auth Gate
+   ═══════════════════════════════════════════════ */
+.auth-screen {
+  min-height: 100vh;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-screen.active {
+  display: flex;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 24px;
+  animation: fadeUp 0.28s var(--ease) both;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-brand h1 {
+  font-size: 1.1rem;
+}
+
 /* ─── Layout ─── */
 .app-shell {
   display: grid;
@@ -177,31 +217,6 @@ body {
   margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid var(--border);
-}
-
-.sync-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.sync-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--muted);
-  flex-shrink: 0;
-  transition: background 0.3s var(--ease);
-}
-
-.sync-pill.connected .sync-dot {
-  background: var(--success);
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
 }
 
 /* ═══════════════════════════════════════════════

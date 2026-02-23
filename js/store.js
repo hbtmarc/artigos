@@ -1,8 +1,23 @@
-import { createDefaultState } from "./defaultState.js";
+import { createDefaultState, DEFAULT_FIREBASE_CONFIG } from "./defaultState.js";
 import { createFirebaseClient } from "./firebaseService.js";
 import { debounce, safeJSONParse } from "./utils.js";
 
 const STORAGE_KEY = "nucleo-criativo-state-v1";
+
+function resolveFirebaseSettings(candidate = {}) {
+  return {
+    apiKey: candidate.apiKey || DEFAULT_FIREBASE_CONFIG.apiKey,
+    authDomain: candidate.authDomain || DEFAULT_FIREBASE_CONFIG.authDomain,
+    databaseURL: candidate.databaseURL || DEFAULT_FIREBASE_CONFIG.databaseURL,
+    projectId: candidate.projectId || DEFAULT_FIREBASE_CONFIG.projectId,
+    storageBucket: candidate.storageBucket || DEFAULT_FIREBASE_CONFIG.storageBucket,
+    messagingSenderId:
+      candidate.messagingSenderId || DEFAULT_FIREBASE_CONFIG.messagingSenderId,
+    appId: candidate.appId || DEFAULT_FIREBASE_CONFIG.appId,
+    measurementId: candidate.measurementId || DEFAULT_FIREBASE_CONFIG.measurementId,
+    workspaceId: candidate.workspaceId || DEFAULT_FIREBASE_CONFIG.workspaceId
+  };
+}
 
 export class Store {
   constructor() {
@@ -66,8 +81,7 @@ export class Store {
         ...defaults.settings,
         ...parsed.settings,
         firebase: {
-          ...defaults.settings.firebase,
-          ...parsed.settings?.firebase
+          ...resolveFirebaseSettings(parsed.settings?.firebase)
         }
       }
     };
@@ -114,7 +128,8 @@ export class Store {
   }
 
   async connectFirebase() {
-    const settings = this.state.settings.firebase;
+    const settings = resolveFirebaseSettings(this.state.settings.firebase);
+    this.state.settings.firebase = settings;
 
     if (!this.firebaseClient) {
       this.firebaseClient = await createFirebaseClient(settings);
@@ -122,6 +137,7 @@ export class Store {
 
     if (!this.unsubscribeAuth) {
       this.unsubscribeAuth = this.firebaseClient.onAuthChange((authUser) => {
+        const previousUid = this.state.settings.authUser?.uid || null;
         this.state.settings.authUser = authUser;
 
         if (!authUser) {
@@ -135,18 +151,44 @@ export class Store {
           return;
         }
 
+        if (previousUid !== authUser.uid) {
+          this.resetWorkspaceForUser(authUser);
+        }
+
         this.subscribeToUserWorkspace(authUser.uid);
       });
     }
 
+    const previousUid = this.state.settings.authUser?.uid || null;
     const currentUser = this.firebaseClient.getCurrentUser();
     this.state.settings.authUser = currentUser;
     this.persistLocal();
     this.notify();
 
     if (currentUser?.uid) {
+      if (previousUid !== currentUser.uid) {
+        this.resetWorkspaceForUser(currentUser);
+      }
       this.subscribeToUserWorkspace(currentUser.uid);
     }
+  }
+
+  resetWorkspaceForUser(authUser) {
+    const defaults = createDefaultState();
+    const currentSettings = this.state.settings;
+
+    this.state = {
+      ...defaults,
+      settings: {
+        ...currentSettings,
+        authUser,
+        firebaseConnected: false,
+        lastSyncAt: null
+      }
+    };
+
+    this.persistLocal();
+    this.notify();
   }
 
   subscribeToUserWorkspace(userId) {

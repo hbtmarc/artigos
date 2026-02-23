@@ -11,11 +11,18 @@ const views = {
   writing: document.querySelector("#writing"),
   brainstorm: document.querySelector("#brainstorm"),
   mindmap: document.querySelector("#mindmap"),
-  whiteboard: document.querySelector("#whiteboard"),
-  settings: document.querySelector("#settings")
+  whiteboard: document.querySelector("#whiteboard")
 };
 
-const syncIndicator = document.querySelector("#sync-indicator");
+const authScreen = document.querySelector("#auth-screen");
+const appShell = document.querySelector("#app-shell");
+const authEmailInput = document.querySelector("#auth-email");
+const authPasswordInput = document.querySelector("#auth-password");
+const authMessage = document.querySelector("#auth-message");
+const authLoginBtn = document.querySelector("#auth-login-btn");
+const authSignupBtn = document.querySelector("#auth-signup-btn");
+const logoutBtn = document.querySelector("#logout-btn");
+const currentUserEl = document.querySelector("#current-user");
 
 document.querySelector("#main-nav").addEventListener("click", (event) => {
   const button = event.target.closest("button[data-view]");
@@ -35,22 +42,84 @@ store.subscribe(() => render());
 render();
 store.connectFirebase().catch(() => {});
 
-function updateSyncIndicator(state) {
-  const connected = state.settings.firebaseConnected;
-  syncIndicator.classList.toggle("connected", connected);
-  syncIndicator.querySelector(".sync-label").textContent = connected
-    ? "RTDB conectado"
-    : "Modo local";
+authLoginBtn.addEventListener("click", async () => {
+  await submitAuth("signin");
+});
+
+authSignupBtn.addEventListener("click", async () => {
+  await submitAuth("signup");
+});
+
+authPasswordInput.addEventListener("keydown", async (event) => {
+  if (event.key !== "Enter") return;
+  await submitAuth("signin");
+});
+
+logoutBtn.addEventListener("click", async () => {
+  try {
+    await store.signOut();
+    authMessage.textContent = "Sessão encerrada.";
+  } catch (error) {
+    authMessage.textContent = `Falha ao sair: ${error.message}`;
+  }
+});
+
+async function submitAuth(mode) {
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value.trim();
+
+  if (!email || !password) {
+    authMessage.textContent = "Informe email e senha para continuar.";
+    return;
+  }
+
+  try {
+    if (mode === "signup") {
+      await store.signUp(email, password);
+      authMessage.textContent = "Conta criada e acesso liberado.";
+      return;
+    }
+
+    await store.signIn(email, password);
+    authMessage.textContent = "Login realizado com sucesso.";
+  } catch (error) {
+    authMessage.textContent =
+      mode === "signup"
+        ? `Falha ao criar conta: ${error.message}`
+        : `Falha no login: ${error.message}`;
+  }
+}
+
+function updateUserContext(state) {
+  const authenticated = Boolean(state.settings.authUser);
+
+  currentUserEl.textContent = authenticated
+    ? `Usuário: ${state.settings.authUser.email || state.settings.authUser.uid}`
+    : "Faça login para acessar o ambiente";
+}
+
+function applyAuthGate(state) {
+  const authenticated = Boolean(state.settings.authUser);
+
+  authScreen.classList.toggle("active", !authenticated);
+  appShell.classList.toggle("hidden", !authenticated);
 }
 
 function render() {
   const state = store.getState();
 
+  applyAuthGate(state);
+
+  if (!state.settings.authUser) {
+    updateUserContext(state);
+    return;
+  }
+
   Object.entries(views).forEach(([key, section]) => {
     section.classList.toggle("active", key === activeView);
   });
 
-  updateSyncIndicator(state);
+  updateUserContext(state);
   renderDashboard(state);
   renderProjects(state);
   renderKanban(state);
@@ -58,15 +127,11 @@ function render() {
   renderBrainstorm(state);
   renderMindmap(state);
   renderWhiteboard(state);
-  renderSettings(state);
 }
 
 function renderDashboard(state) {
   const cardsCount = Object.keys(state.kanban.cards).length;
   const lastUpdate = new Date(state.meta.updatedAt).toLocaleString("pt-BR");
-  const lastSync = state.settings.lastSyncAt
-    ? new Date(state.settings.lastSyncAt).toLocaleString("pt-BR")
-    : "nunca";
 
   views.dashboard.innerHTML = `
     <div class="page-header">
@@ -108,13 +173,11 @@ function renderDashboard(state) {
     <div class="grid two">
       <article class="card">
         <div class="card-header">
-          <h3>Sincronização</h3>
-          <span class="badge ${state.settings.firebaseConnected ? "success" : "muted"}">${
-            state.settings.firebaseConnected ? "Conectado" : "Local"
-          }</span>
+          <h3>Resumo geral</h3>
+          <span class="badge accent">Workspace</span>
         </div>
         <p class="muted" style="font-size: 0.88rem">Última atualização: ${lastUpdate}</p>
-        <p class="muted" style="font-size: 0.88rem">Último sync remoto: ${lastSync}</p>
+        <p class="muted" style="font-size: 0.88rem">Itens organizados em projetos, quadros e ideias.</p>
       </article>
       <article class="card">
         <div class="card-header">
@@ -901,182 +964,3 @@ function setupCanvas(strokes) {
   window.addEventListener("resize", resize, { once: true });
 }
 
-function renderSettings(state) {
-  const settings = state.settings.firebase;
-  const authUser = state.settings.authUser;
-
-  views.settings.innerHTML = `
-    <div class="page-header">
-      <h2>Firebase RTDB</h2>
-      <p>Configure RTDB e autenticação para separar dados por usuário.</p>
-    </div>
-    <article class="card">
-      <div class="card-header">
-        <h3>Credenciais</h3>
-        <span class="badge ${state.settings.firebaseConnected ? "success" : "muted"}">${
-          state.settings.firebaseConnected ? "Conectado" : "Desconectado"
-        }</span>
-      </div>
-      <p class="muted" style="font-size: 0.85rem; margin-bottom: 16px">Preencha os dados do seu projeto Firebase. As credenciais ficam salvas apenas no navegador.</p>
-      <div class="grid two" style="gap: 14px">
-        <div>
-          <label>apiKey</label>
-          <input id="fb-apiKey" value="${settings.apiKey}" placeholder="AIza..." />
-        </div>
-        <div>
-          <label>authDomain</label>
-          <input id="fb-authDomain" value="${settings.authDomain}" placeholder="projeto.firebaseapp.com" />
-        </div>
-        <div>
-          <label>databaseURL</label>
-          <input id="fb-databaseURL" value="${settings.databaseURL}" placeholder="https://projeto-default-rtdb.firebaseio.com" />
-        </div>
-        <div>
-          <label>projectId</label>
-          <input id="fb-projectId" value="${settings.projectId}" placeholder="meu-projeto" />
-        </div>
-        <div>
-          <label>storageBucket</label>
-          <input id="fb-storageBucket" value="${settings.storageBucket}" placeholder="projeto.appspot.com" />
-        </div>
-        <div>
-          <label>messagingSenderId</label>
-          <input id="fb-messagingSenderId" value="${settings.messagingSenderId}" />
-        </div>
-        <div>
-          <label>appId</label>
-          <input id="fb-appId" value="${settings.appId}" placeholder="1:000:web:abc123" />
-        </div>
-        <div>
-          <label>measurementId (opcional)</label>
-          <input id="fb-measurementId" value="${settings.measurementId || ""}" placeholder="G-XXXXXXXXXX" />
-        </div>
-        <div>
-          <label>workspaceId</label>
-          <input id="fb-workspaceId" value="${settings.workspaceId}" placeholder="nucleo-criativo-main" />
-        </div>
-      </div>
-      <div class="divider"></div>
-      <div class="actions">
-        <button class="primary" id="save-firebase-btn">Salvar configuração</button>
-        <button class="secondary" id="connect-firebase-btn">Inicializar Firebase</button>
-        <button class="secondary" id="disconnect-firebase-btn">Desconectar SDK</button>
-      </div>
-    </article>
-
-    <article class="card" style="margin-top: 16px">
-      <div class="card-header">
-        <h3>Autenticação (Email/Senha)</h3>
-        <span class="badge ${authUser ? "success" : "muted"}">${
-          authUser ? "Autenticado" : "Não autenticado"
-        }</span>
-      </div>
-      <p class="muted" style="font-size: 0.85rem; margin-bottom: 12px">
-        ${authUser ? `Usuário atual: <strong>${authUser.email || authUser.uid}</strong>` : "Entre para sincronizar dados separados por usuário."}
-      </p>
-      <div class="grid two" style="gap: 14px">
-        <div>
-          <label>Email</label>
-          <input id="auth-email" type="email" placeholder="voce@exemplo.com" />
-        </div>
-        <div>
-          <label>Senha</label>
-          <input id="auth-password" type="password" placeholder="••••••••" />
-        </div>
-      </div>
-      <div class="actions" style="margin-top: 12px">
-        <button class="primary" id="auth-signin-btn">Entrar</button>
-        <button class="secondary" id="auth-signup-btn">Criar conta</button>
-        <button class="danger" id="auth-signout-btn" ${authUser ? "" : "disabled"}>Sair</button>
-      </div>
-    </article>
-  `;
-
-  views.settings.querySelector("#save-firebase-btn").addEventListener("click", async () => {
-    const firebase = {
-      apiKey: value("#fb-apiKey"),
-      authDomain: value("#fb-authDomain"),
-      databaseURL: value("#fb-databaseURL"),
-      projectId: value("#fb-projectId"),
-      storageBucket: value("#fb-storageBucket"),
-      messagingSenderId: value("#fb-messagingSenderId"),
-      appId: value("#fb-appId"),
-      measurementId: value("#fb-measurementId"),
-      workspaceId: value("#fb-workspaceId") || "nucleo-criativo-main"
-    };
-
-    store.setState((prev) => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        firebase
-      }
-    }));
-
-    alert("Configuração Firebase salva.");
-  });
-
-  views.settings
-    .querySelector("#connect-firebase-btn")
-    .addEventListener("click", async () => {
-      try {
-        await store.connectFirebase();
-        alert("Firebase inicializado. Agora você pode entrar com email/senha.");
-      } catch (error) {
-        alert(`Falha ao inicializar Firebase: ${error.message}`);
-      }
-    });
-
-  views.settings
-    .querySelector("#disconnect-firebase-btn")
-    .addEventListener("click", () => {
-      store.disconnectFirebase();
-    });
-
-  views.settings.querySelector("#auth-signin-btn").addEventListener("click", async () => {
-    const email = value("#auth-email");
-    const password = value("#auth-password");
-
-    if (!email || !password) {
-      alert("Informe email e senha.");
-      return;
-    }
-
-    try {
-      await store.signIn(email, password);
-      alert("Login realizado com sucesso.");
-    } catch (error) {
-      alert(`Falha no login: ${error.message}`);
-    }
-  });
-
-  views.settings.querySelector("#auth-signup-btn").addEventListener("click", async () => {
-    const email = value("#auth-email");
-    const password = value("#auth-password");
-
-    if (!email || !password) {
-      alert("Informe email e senha.");
-      return;
-    }
-
-    try {
-      await store.signUp(email, password);
-      alert("Conta criada e login realizado.");
-    } catch (error) {
-      alert(`Falha ao criar conta: ${error.message}`);
-    }
-  });
-
-  views.settings.querySelector("#auth-signout-btn").addEventListener("click", async () => {
-    try {
-      await store.signOut();
-      alert("Sessão encerrada.");
-    } catch (error) {
-      alert(`Falha ao sair: ${error.message}`);
-    }
-  });
-}
-
-function value(selector) {
-  return views.settings.querySelector(selector).value.trim();
-}
