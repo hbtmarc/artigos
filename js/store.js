@@ -9,6 +9,7 @@ export class Store {
     this.state = createDefaultState();
     this.listeners = new Set();
     this.firebaseClient = null;
+    this.unsubscribeAuth = null;
     this.unsubscribeRemote = null;
 
     this.persistDebounced = debounce(() => this.persist(), 450);
@@ -52,12 +53,22 @@ export class Store {
     const parsed = safeJSONParse(raw);
     if (!parsed) return;
 
+    const defaults = createDefaultState();
+
     this.state = {
-      ...createDefaultState(),
+      ...defaults,
       ...parsed,
       meta: {
-        ...createDefaultState().meta,
+        ...defaults.meta,
         ...parsed.meta
+      },
+      settings: {
+        ...defaults.settings,
+        ...parsed.settings,
+        firebase: {
+          ...defaults.settings.firebase,
+          ...parsed.settings?.firebase
+        }
       }
     };
   }
@@ -67,11 +78,29 @@ export class Store {
   }
 
   async persistRemote() {
-    if (!this.firebaseClient) return;
+    if (!this.firebaseClient || !this.state.settings.authUser?.uid) return;
 
-    await this.firebaseClient.write({
+    const payloadState = {
+      ...this.state,
+      settings: {
+        ...this.state.settings,
+        firebase: {
+          ...this.state.settings.firebase,
+          apiKey: "",
+          authDomain: "",
+          databaseURL: "",
+          projectId: "",
+          storageBucket: "",
+          messagingSenderId: "",
+          appId: "",
+          measurementId: ""
+        }
+      }
+    };
+
+    await this.firebaseClient.write(this.state.settings.authUser.uid, {
       updatedAt: this.state.meta.updatedAt,
-      data: this.state
+      data: payloadState
     });
 
     this.state.settings.lastSyncAt = new Date().toISOString();
@@ -87,21 +116,61 @@ export class Store {
   async connectFirebase() {
     const settings = this.state.settings.firebase;
 
+    if (!this.firebaseClient) {
+      this.firebaseClient = await createFirebaseClient(settings);
+    }
+
+    if (!this.unsubscribeAuth) {
+      this.unsubscribeAuth = this.firebaseClient.onAuthChange((authUser) => {
+        this.state.settings.authUser = authUser;
+
+        if (!authUser) {
+          if (this.unsubscribeRemote) {
+            this.unsubscribeRemote();
+            this.unsubscribeRemote = null;
+          }
+          this.state.settings.firebaseConnected = false;
+          this.persistLocal();
+          this.notify();
+          return;
+        }
+
+        this.subscribeToUserWorkspace(authUser.uid);
+      });
+    }
+
+    const currentUser = this.firebaseClient.getCurrentUser();
+    this.state.settings.authUser = currentUser;
+    this.persistLocal();
+    this.notify();
+
+    if (currentUser?.uid) {
+      this.subscribeToUserWorkspace(currentUser.uid);
+    }
+  }
+
+  subscribeToUserWorkspace(userId) {
     if (this.unsubscribeRemote) {
       this.unsubscribeRemote();
       this.unsubscribeRemote = null;
     }
 
-    this.firebaseClient = await createFirebaseClient(settings);
-
-    this.unsubscribeRemote = this.firebaseClient.subscribe((payload) => {
+    this.unsubscribeRemote = this.firebaseClient.subscribe(userId, (payload) => {
       if (!payload?.data?.meta?.updatedAt) return;
 
       if (payload.data.meta.updatedAt <= this.state.meta.updatedAt) return;
 
+      const localSettings = this.state.settings;
+
       this.state = payload.data;
-      this.state.settings.firebaseConnected = true;
-      this.state.settings.lastSyncAt = new Date().toISOString();
+      this.state.settings = {
+        ...this.state.settings,
+        firebase: localSettings.firebase,
+        authUser: localSettings.authUser,
+        firebaseConnected: true,
+        lastSyncAt: new Date().toISOString()
+      };
+
       this.persistLocal();
       this.notify();
     });
@@ -110,7 +179,28 @@ export class Store {
     this.persistLocal();
     this.notify();
 
-    await this.persistRemote();
+    this.persistRemote().catch(() => {});
+  }
+
+  async signIn(email, password) {
+    await this.connectFirebase();
+    const user = await this.firebaseClient.signIn(email, password);
+    this.state.settings.authUser = user;
+    this.persistLocal();
+    this.notify();
+  }
+
+  async signUp(email, password) {
+    await this.connectFirebase();
+    const user = await this.firebaseClient.signUp(email, password);
+    this.state.settings.authUser = user;
+    this.persistLocal();
+    this.notify();
+  }
+
+  async signOut() {
+    if (!this.firebaseClient) return;
+    await this.firebaseClient.signOut();
   }
 
   disconnectFirebase() {
@@ -119,7 +209,13 @@ export class Store {
       this.unsubscribeRemote = null;
     }
 
+    if (this.unsubscribeAuth) {
+      this.unsubscribeAuth();
+      this.unsubscribeAuth = null;
+    }
+
     this.firebaseClient = null;
+    this.state.settings.authUser = null;
     this.state.settings.firebaseConnected = false;
     this.persistLocal();
     this.notify();

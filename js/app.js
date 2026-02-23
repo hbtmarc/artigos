@@ -33,6 +33,7 @@ document.querySelector("#main-nav").addEventListener("click", (event) => {
 
 store.subscribe(() => render());
 render();
+store.connectFirebase().catch(() => {});
 
 function updateSyncIndicator(state) {
   const connected = state.settings.firebaseConnected;
@@ -902,11 +903,12 @@ function setupCanvas(strokes) {
 
 function renderSettings(state) {
   const settings = state.settings.firebase;
+  const authUser = state.settings.authUser;
 
   views.settings.innerHTML = `
     <div class="page-header">
       <h2>Firebase RTDB</h2>
-      <p>Configure a sincronização em tempo real com o Firebase Realtime Database.</p>
+      <p>Configure RTDB e autenticação para separar dados por usuário.</p>
     </div>
     <article class="card">
       <div class="card-header">
@@ -946,14 +948,46 @@ function renderSettings(state) {
           <input id="fb-appId" value="${settings.appId}" placeholder="1:000:web:abc123" />
         </div>
         <div>
+          <label>measurementId (opcional)</label>
+          <input id="fb-measurementId" value="${settings.measurementId || ""}" placeholder="G-XXXXXXXXXX" />
+        </div>
+        <div>
           <label>workspaceId</label>
           <input id="fb-workspaceId" value="${settings.workspaceId}" placeholder="nucleo-criativo-main" />
         </div>
       </div>
       <div class="divider"></div>
       <div class="actions">
-        <button class="primary" id="save-firebase-btn">Salvar e conectar</button>
-        <button class="secondary" id="disconnect-firebase-btn">Desconectar</button>
+        <button class="primary" id="save-firebase-btn">Salvar configuração</button>
+        <button class="secondary" id="connect-firebase-btn">Inicializar Firebase</button>
+        <button class="secondary" id="disconnect-firebase-btn">Desconectar SDK</button>
+      </div>
+    </article>
+
+    <article class="card" style="margin-top: 16px">
+      <div class="card-header">
+        <h3>Autenticação (Email/Senha)</h3>
+        <span class="badge ${authUser ? "success" : "muted"}">${
+          authUser ? "Autenticado" : "Não autenticado"
+        }</span>
+      </div>
+      <p class="muted" style="font-size: 0.85rem; margin-bottom: 12px">
+        ${authUser ? `Usuário atual: <strong>${authUser.email || authUser.uid}</strong>` : "Entre para sincronizar dados separados por usuário."}
+      </p>
+      <div class="grid two" style="gap: 14px">
+        <div>
+          <label>Email</label>
+          <input id="auth-email" type="email" placeholder="voce@exemplo.com" />
+        </div>
+        <div>
+          <label>Senha</label>
+          <input id="auth-password" type="password" placeholder="••••••••" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top: 12px">
+        <button class="primary" id="auth-signin-btn">Entrar</button>
+        <button class="secondary" id="auth-signup-btn">Criar conta</button>
+        <button class="danger" id="auth-signout-btn" ${authUser ? "" : "disabled"}>Sair</button>
       </div>
     </article>
   `;
@@ -967,6 +1001,7 @@ function renderSettings(state) {
       storageBucket: value("#fb-storageBucket"),
       messagingSenderId: value("#fb-messagingSenderId"),
       appId: value("#fb-appId"),
+      measurementId: value("#fb-measurementId"),
       workspaceId: value("#fb-workspaceId") || "nucleo-criativo-main"
     };
 
@@ -978,19 +1013,68 @@ function renderSettings(state) {
       }
     }));
 
-    try {
-      await store.connectFirebase();
-      alert("Firebase conectado e sincronizando.");
-    } catch (error) {
-      alert(`Falha ao conectar no Firebase: ${error.message}`);
-    }
+    alert("Configuração Firebase salva.");
   });
+
+  views.settings
+    .querySelector("#connect-firebase-btn")
+    .addEventListener("click", async () => {
+      try {
+        await store.connectFirebase();
+        alert("Firebase inicializado. Agora você pode entrar com email/senha.");
+      } catch (error) {
+        alert(`Falha ao inicializar Firebase: ${error.message}`);
+      }
+    });
 
   views.settings
     .querySelector("#disconnect-firebase-btn")
     .addEventListener("click", () => {
       store.disconnectFirebase();
     });
+
+  views.settings.querySelector("#auth-signin-btn").addEventListener("click", async () => {
+    const email = value("#auth-email");
+    const password = value("#auth-password");
+
+    if (!email || !password) {
+      alert("Informe email e senha.");
+      return;
+    }
+
+    try {
+      await store.signIn(email, password);
+      alert("Login realizado com sucesso.");
+    } catch (error) {
+      alert(`Falha no login: ${error.message}`);
+    }
+  });
+
+  views.settings.querySelector("#auth-signup-btn").addEventListener("click", async () => {
+    const email = value("#auth-email");
+    const password = value("#auth-password");
+
+    if (!email || !password) {
+      alert("Informe email e senha.");
+      return;
+    }
+
+    try {
+      await store.signUp(email, password);
+      alert("Conta criada e login realizado.");
+    } catch (error) {
+      alert(`Falha ao criar conta: ${error.message}`);
+    }
+  });
+
+  views.settings.querySelector("#auth-signout-btn").addEventListener("click", async () => {
+    try {
+      await store.signOut();
+      alert("Sessão encerrada.");
+    } catch (error) {
+      alert(`Falha ao sair: ${error.message}`);
+    }
+  });
 }
 
 function value(selector) {

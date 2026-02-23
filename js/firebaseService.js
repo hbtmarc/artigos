@@ -7,6 +7,7 @@ export async function createFirebaseClient(firebaseSettings) {
     storageBucket,
     messagingSenderId,
     appId,
+    measurementId,
     workspaceId
   } = firebaseSettings;
 
@@ -20,6 +21,9 @@ export async function createFirebaseClient(firebaseSettings) {
   const dbModule = await import(
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"
   );
+  const authModule = await import(
+    "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"
+  );
 
   const config = {
     apiKey,
@@ -28,7 +32,8 @@ export async function createFirebaseClient(firebaseSettings) {
     projectId,
     storageBucket,
     messagingSenderId,
-    appId
+    appId,
+    measurementId
   };
 
   const appName = `nucleo_${projectId}`;
@@ -36,21 +41,70 @@ export async function createFirebaseClient(firebaseSettings) {
   const app = existing || appModule.initializeApp(config, appName);
 
   const db = dbModule.getDatabase(app);
-  const workspaceRef = dbModule.ref(db, `workspaces/${workspaceId}`);
+  const auth = authModule.getAuth(app);
+
+  function workspaceRefForUser(userId) {
+    return dbModule.ref(db, `users/${userId}/workspaces/${workspaceId}`);
+  }
+
+  function toUserPayload(user) {
+    if (!user) return null;
+    return {
+      uid: user.uid,
+      email: user.email || ""
+    };
+  }
 
   return {
-    async write(payload) {
-      await dbModule.set(workspaceRef, payload);
+    getCurrentUser() {
+      return toUserPayload(auth.currentUser);
     },
-    subscribe(onPayload) {
+
+    onAuthChange(onUserChanged) {
+      return authModule.onAuthStateChanged(auth, (user) => {
+        onUserChanged(toUserPayload(user));
+      });
+    },
+
+    async signIn(email, password) {
+      const credential = await authModule.signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      return toUserPayload(credential.user);
+    },
+
+    async signUp(email, password) {
+      const credential = await authModule.createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      return toUserPayload(credential.user);
+    },
+
+    async signOut() {
+      await authModule.signOut(auth);
+    },
+
+    async write(userId, payload) {
+      if (!userId) throw new Error("Usuário não autenticado.");
+      await dbModule.set(workspaceRefForUser(userId), payload);
+    },
+
+    subscribe(userId, onPayload) {
+      if (!userId) throw new Error("Usuário não autenticado.");
+
+      const ref = workspaceRefForUser(userId);
       const listener = (snapshot) => {
         const value = snapshot.val();
         if (value) onPayload(value);
       };
 
-      dbModule.onValue(workspaceRef, listener);
+      dbModule.onValue(ref, listener);
 
-      return () => dbModule.off(workspaceRef, "value", listener);
+      return () => dbModule.off(ref, "value", listener);
     }
   };
 }
