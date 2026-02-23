@@ -325,156 +325,17 @@ function renderKanban(state) {
   views.kanban.innerHTML = `
     <div class="page-header">
       <h2>Kanban</h2>
-      <p>Organize tarefas em colunas e mova entre estágios.</p>
+      <p>Kanban avançado integrado ao projeto principal.</p>
     </div>
-    <div class="card" style="margin-bottom: 16px">
-      <div class="actions">
-        <input id="new-column-title" placeholder="Nome da nova coluna" style="max-width: 260px" />
-        <button class="secondary" id="add-column-btn">+ Nova coluna</button>
-      </div>
-    </div>
-    <div class="kanban">
-      ${state.kanban.columns
-        .map((column, columnIndex) => {
-          const cards = column.cardIds
-            .map((cardId) => state.kanban.cards[cardId])
-            .filter(Boolean);
-
-          return `
-            <article class="kanban-column">
-              <h3>${column.title} <span class="badge muted" style="font-size: 0.7rem">${cards.length}</span></h3>
-              <div class="actions" style="margin-bottom: 10px">
-                <input data-new-card-title="${column.id}" placeholder="Título do card" />
-                <button class="secondary" data-add-card="${column.id}">+</button>
-              </div>
-              <div>
-                ${cards.length === 0 ? `<p class="muted" style="text-align: center; font-size: 0.82rem; padding: 12px 0">Vazio</p>` : cards
-                  .map(
-                    (card) => `
-                    <div class="kanban-card">
-                      <strong style="font-size: 0.9rem">${card.title}</strong>
-                      ${card.description ? `<p class="muted" style="font-size: 0.82rem; margin-top: 4px">${card.description}</p>` : ""}
-                      <div class="actions" style="margin-top: 8px">
-                        <button class="ghost" data-move-left="${card.id}" ${
-                      columnIndex === 0 ? "disabled" : ""
-                    }>← Mover</button>
-                        <button class="ghost" data-move-right="${card.id}" ${
-                      columnIndex === state.kanban.columns.length - 1
-                        ? "disabled"
-                        : ""
-                    }>Mover →</button>
-                        <button class="ghost" style="color: var(--danger)" data-delete-card="${card.id}">Excluir</button>
-                      </div>
-                    </div>
-                  `
-                  )
-                  .join("")}
-              </div>
-            </article>
-          `;
-        })
-        .join("")}
+    <div class="card kanban-embedded-card">
+      <iframe
+        class="kanban-embed-frame"
+        src="./kanban/"
+        title="Kanban Integrado"
+        loading="lazy"
+      ></iframe>
     </div>
   `;
-
-  views.kanban.querySelector("#add-column-btn").addEventListener("click", () => {
-    const input = views.kanban.querySelector("#new-column-title");
-    const title = input.value.trim();
-    if (!title) return;
-
-    store.setState((prev) => ({
-      ...prev,
-      kanban: {
-        ...prev.kanban,
-        columns: [...prev.kanban.columns, { id: uid("col"), title, cardIds: [] }]
-      }
-    }));
-    input.value = "";
-  });
-
-  views.kanban.querySelectorAll("[data-add-card]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const columnId = button.dataset.addCard;
-      const input = views.kanban.querySelector(
-        `[data-new-card-title=\"${columnId}\"]`
-      );
-      const title = input.value.trim();
-      if (!title) return;
-
-      const cardId = uid("card");
-
-      store.setState((prev) => ({
-        ...prev,
-        kanban: {
-          cards: {
-            ...prev.kanban.cards,
-            [cardId]: {
-              id: cardId,
-              title,
-              description: "",
-              updatedAt: nowISO()
-            }
-          },
-          columns: prev.kanban.columns.map((column) =>
-            column.id === columnId
-              ? { ...column, cardIds: [...column.cardIds, cardId] }
-              : column
-          )
-        }
-      }));
-      input.value = "";
-    });
-  });
-
-  views.kanban.querySelectorAll("[data-delete-card]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const cardId = button.dataset.deleteCard;
-
-      store.setState((prev) => {
-        const cards = { ...prev.kanban.cards };
-        delete cards[cardId];
-
-        return {
-          ...prev,
-          kanban: {
-            cards,
-            columns: prev.kanban.columns.map((column) => ({
-              ...column,
-              cardIds: column.cardIds.filter((id) => id !== cardId)
-            }))
-          }
-        };
-      });
-    });
-  });
-
-  views.kanban.querySelectorAll("[data-move-left], [data-move-right]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const cardId = button.dataset.moveLeft || button.dataset.moveRight;
-      const direction = button.dataset.moveLeft ? -1 : 1;
-
-      store.setState((prev) => {
-        const columns = prev.kanban.columns.map((column) => ({ ...column, cardIds: [...column.cardIds] }));
-
-        const sourceIndex = columns.findIndex((column) => column.cardIds.includes(cardId));
-        if (sourceIndex < 0) return prev;
-
-        const targetIndex = sourceIndex + direction;
-        if (targetIndex < 0 || targetIndex >= columns.length) return prev;
-
-        columns[sourceIndex].cardIds = columns[sourceIndex].cardIds.filter((id) => id !== cardId);
-        columns[targetIndex].cardIds.push(cardId);
-
-        return {
-          ...prev,
-          kanban: {
-            ...prev.kanban,
-            columns
-          }
-        };
-      });
-    });
-  });
 }
 
 function renderWriting(state) {

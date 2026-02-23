@@ -526,6 +526,18 @@ button.ghost:hover {
   transform: translateY(-1px);
 }
 
+.kanban-embedded-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.kanban-embed-frame {
+  width: 100%;
+  min-height: 78vh;
+  border: 0;
+  background: #fff;
+}
+
 /* ═══════════════════════════════════════════════
    Lists
    ═══════════════════════════════════════════════ */
