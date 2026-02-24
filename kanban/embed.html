@@ -4,66 +4,112 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kanban Local</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <h1>Kanban Local</h1>
-      <div class="topbar-actions">
-        <button id="export-btn" class="btn secondary">Exportar JSON</button>
-        <button id="import-btn" class="btn secondary">Importar JSON</button>
-        <input id="import-file" type="file" accept="application/json" hidden />
+    <!-- ─── Toolbar compacta ─── -->
+    <header class="toolbar">
+      <div class="toolbar-row">
+        <div class="toolbar-left">
+          <select id="project-filter" class="mini-select" title="Projeto"></select>
+          <select id="board-select" class="mini-select" title="Quadro"></select>
+          <button id="new-board-btn" class="btn primary sm">+ Quadro</button>
+          <button id="new-project-btn" class="btn ghost sm">+ Projeto</button>
+        </div>
+        <div class="toolbar-center">
+          <span id="board-meta" class="meta-tag"></span>
+        </div>
+        <div class="toolbar-right">
+          <button id="toggle-filters-btn" class="btn ghost sm">Filtros</button>
+          <button id="archived-btn" class="btn ghost sm">Arquivados</button>
+          <button id="export-btn" class="btn ghost sm">Exportar</button>
+          <button id="import-btn" class="btn ghost sm">Importar</button>
+          <input id="import-file" type="file" accept="application/json" hidden />
+        </div>
+      </div>
+
+      <!-- Painel de filtros colapsável -->
+      <div id="filter-panel" class="filter-panel hidden">
+        <input id="search-input" type="text" class="filter-input" placeholder="Buscar cartões..." />
+        <select id="filter-label" class="mini-select"></select>
+        <select id="filter-due" class="mini-select">
+          <option value="todos">Prazo: Todos</option>
+          <option value="hoje">Vence hoje</option>
+          <option value="atrasado">Atrasados</option>
+        </select>
+        <label class="check-inline">
+          <input id="filter-archived" type="checkbox" />
+          Arquivados
+        </label>
+        <div class="bg-controls">
+          <input id="board-bg-color" type="color" value="#f6f7fb" title="Cor de fundo" />
+          <input id="board-bg-image" type="text" class="filter-input sm" placeholder="URL de fundo..." />
+          <button id="save-bg-btn" class="btn ghost sm">Aplicar</button>
+        </div>
       </div>
     </header>
 
-    <section class="filters">
-      <div class="field">
-        <label for="project-filter">Filtro de projeto</label>
-        <select id="project-filter"></select>
-      </div>
-      <div class="field">
-        <label for="board-select">Seletor de quadro</label>
-        <select id="board-select"></select>
-      </div>
-      <div class="field compact">
-        <label>&nbsp;</label>
-        <button id="new-board-btn" class="btn primary">Novo quadro</button>
-      </div>
-      <div class="field compact">
-        <label>&nbsp;</label>
-        <button id="new-project-btn" class="btn secondary">Novo projeto</button>
-      </div>
-    </section>
-
-    <main class="board-wrapper">
-      <section class="board-controls">
-        <button id="add-column-btn" class="btn primary" data-hint="Sugestão: Backlog, Em Andamento e Concluído">+ Adicionar coluna</button>
-        <span id="board-meta" class="muted"></span>
-      </section>
-
-      <section id="columns-container" class="columns-container"></section>
+    <!-- ─── Quadro ─── -->
+    <main id="board-canvas" class="board-canvas">
+      <section id="lists-row" class="lists-row"></section>
     </main>
 
     <section id="card-modal" class="modal hidden" aria-hidden="true">
       <div class="modal-backdrop" data-close-modal="true"></div>
-      <article class="modal-panel">
+      <article class="modal-panel modal-grande">
         <header class="modal-header">
-          <h2>Editar card</h2>
+          <h2>Editar cartão</h2>
           <button id="close-modal-btn" class="btn ghost">Fechar</button>
         </header>
 
         <div class="field">
           <label for="card-title-input">Título</label>
-          <input id="card-title-input" type="text" placeholder="Título do card" />
-        </div>
-
-        <div class="field">
-          <label>Descrição</label>
-          <div id="card-description" class="description-editor" contenteditable="true"></div>
-          <small class="muted">Dica: use Ctrl+V com imagem/arquivo ou texto direto aqui.</small>
+          <input id="card-title-input" type="text" placeholder="Título do cartão" />
         </div>
 
         <div class="modal-grid">
+          <section>
+            <div class="field">
+              <label>Descrição</label>
+              <div id="card-description" class="description-editor" contenteditable="true"></div>
+              <small class="muted">Dica: Ctrl+V com imagem/arquivo ou texto aqui.</small>
+            </div>
+
+            <div class="field">
+              <label>Rótulos do quadro</label>
+              <div class="inline-row">
+                <input id="new-label-name" type="text" placeholder="Nome do rótulo" />
+                <input id="new-label-color" type="color" value="#4f6ef7" />
+                <button id="add-label-btn" class="btn secondary">Adicionar rótulo</button>
+              </div>
+              <div id="label-picker" class="label-picker"></div>
+            </div>
+
+            <div class="field">
+              <label>Prazo</label>
+              <div class="inline-row">
+                <input id="due-input" type="datetime-local" />
+                <label class="check-inline">
+                  <input id="due-done" type="checkbox" />
+                  Concluído
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Capa do cartão</label>
+              <div class="inline-row">
+                <input id="cover-color" type="color" value="#4f6ef7" />
+                <button id="set-cover-color-btn" class="btn secondary">Usar cor</button>
+                <button id="clear-cover-btn" class="btn ghost">Remover capa</button>
+              </div>
+              <div id="cover-attachment-picker" class="attachment-cover-picker"></div>
+            </div>
+          </section>
+
           <section>
             <h3>Checklist</h3>
             <div class="checklist-add">
@@ -71,22 +117,46 @@
               <button id="add-checklist-btn" class="btn secondary">Adicionar</button>
             </div>
             <ul id="checklist-list" class="checklist-list"></ul>
-          </section>
 
-          <section>
             <h3>Anexos</h3>
             <div class="attachment-actions">
-              <button id="add-attachment-btn" class="btn secondary">Adicionar imagem/arquivo</button>
+              <button id="add-attachment-btn" class="btn secondary">Adicionar arquivo</button>
               <input id="attachment-file-input" type="file" accept="image/*" hidden multiple />
             </div>
+            <div id="drop-zone" class="drop-zone">Arraste arquivos aqui</div>
             <ul id="attachment-list" class="attachment-list"></ul>
+
+            <h3>Comentários</h3>
+            <div class="inline-row">
+              <input id="comment-input" type="text" placeholder="Escreva um comentário" />
+              <button id="add-comment-btn" class="btn secondary">Comentar</button>
+            </div>
+            <ul id="comments-list" class="simple-list"></ul>
+
+            <h3>Atividade</h3>
+            <ul id="activity-list" class="simple-list"></ul>
           </section>
         </div>
 
         <footer class="modal-footer">
-          <button id="delete-card-btn" class="btn danger">Excluir card</button>
-          <button id="save-card-btn" class="btn primary">Salvar card</button>
+          <button id="archive-card-btn" class="btn secondary">Arquivar cartão</button>
+          <button id="delete-card-btn" class="btn danger">Excluir cartão</button>
+          <button id="save-card-btn" class="btn primary">Salvar cartão</button>
         </footer>
+      </article>
+    </section>
+
+    <section id="archived-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close-archived="true"></div>
+      <article class="modal-panel">
+        <header class="modal-header">
+          <h2>Itens arquivados</h2>
+          <button id="close-archived-btn" class="btn ghost">Fechar</button>
+        </header>
+        <h3>Listas arquivadas</h3>
+        <ul id="archived-lists" class="simple-list"></ul>
+        <h3>Cartões arquivados</h3>
+        <ul id="archived-cards" class="simple-list"></ul>
       </article>
     </section>
 

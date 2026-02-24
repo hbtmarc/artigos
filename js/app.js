@@ -132,37 +132,45 @@ function render() {
 function renderDashboard(state) {
   const cardsCount = Object.keys(state.kanban.cards).length;
   const lastUpdate = new Date(state.meta.updatedAt).toLocaleString("pt-BR");
+  const userEmail = state.settings.authUser?.email || "";
+  const statusCounts = state.projects.reduce((acc, p) => {
+    acc[p.status] = (acc[p.status] || 0) + 1;
+    return acc;
+  }, {});
 
   views.dashboard.innerHTML = `
-    <div class="page-header">
-      <h2>Dashboard</h2>
-      <p>Visão geral da sua produção e organização criativa.</p>
+    <div class="welcome-section">
+      <div>
+        <h2>Olá${userEmail ? ", " + userEmail.split("@")[0] : ""}</h2>
+        <p>Aqui está um resumo do seu espaço criativo.</p>
+      </div>
+      <span class="badge muted">Atualizado: ${lastUpdate}</span>
     </div>
 
-    <div class="grid four" style="margin-bottom: 20px">
+    <div class="grid four" style="margin-bottom:24px">
       <article class="stat-card">
-        <div class="stat-icon" style="background: var(--accent-light); color: var(--accent)">
+        <div class="stat-icon" style="background:var(--accent-light);color:var(--accent)">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
         </div>
         <div class="stat-value">${state.projects.length}</div>
         <div class="stat-label">Projetos</div>
       </article>
       <article class="stat-card">
-        <div class="stat-icon" style="background: var(--warning-light); color: var(--warning)">
+        <div class="stat-icon" style="background:var(--warning-light);color:var(--warning)">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
         </div>
         <div class="stat-value">${cardsCount}</div>
         <div class="stat-label">Cards Kanban</div>
       </article>
       <article class="stat-card">
-        <div class="stat-icon" style="background: var(--success-light); color: var(--success)">
+        <div class="stat-icon" style="background:var(--success-light);color:var(--success)">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
         </div>
         <div class="stat-value">${state.writing.docs.length}</div>
         <div class="stat-label">Documentos</div>
       </article>
       <article class="stat-card">
-        <div class="stat-icon" style="background: var(--danger-light); color: var(--danger)">
+        <div class="stat-icon" style="background:var(--danger-light);color:var(--danger)">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
         </div>
         <div class="stat-value">${state.brainstorm.ideas.length}</div>
@@ -173,104 +181,134 @@ function renderDashboard(state) {
     <div class="grid two">
       <article class="card">
         <div class="card-header">
-          <h3>Resumo geral</h3>
-          <span class="badge accent">Workspace</span>
+          <h3>Projetos por status</h3>
         </div>
-        <p class="muted" style="font-size: 0.88rem">Última atualização: ${lastUpdate}</p>
-        <p class="muted" style="font-size: 0.88rem">Itens organizados em projetos, quadros e ideias.</p>
+        ${state.projects.length === 0
+          ? `<p class="muted" style="font-size:0.86rem">Nenhum projeto cadastrado ainda.</p>`
+          : `<div style="display:flex;flex-direction:column;gap:10px">
+              ${["Planejamento","Em andamento","Pausado","Concluído"].map(s => {
+                const count = statusCounts[s] || 0;
+                const pct = state.projects.length ? Math.round(count / state.projects.length * 100) : 0;
+                const colors = {"Planejamento":"var(--accent)","Em andamento":"var(--warning)","Pausado":"var(--muted)","Concluído":"var(--success)"};
+                return `
+                  <div class="progress-row">
+                    <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+                      <span>${s}</span><span style="font-weight:600">${count}</span>
+                    </div>
+                    <div class="progress-bar-track">
+                      <div class="progress-bar-fill" style="width:${pct}%;background:${colors[s]}"></div>
+                    </div>
+                  </div>`;
+              }).join("")}
+            </div>`
+        }
       </article>
       <article class="card">
         <div class="card-header">
           <h3>Atividade recente</h3>
         </div>
-        <p class="muted" style="font-size: 0.88rem">
-          ${state.projects.length > 0 ? `Projeto mais recente: <strong>${state.projects[0].name}</strong>` : "Nenhum projeto cadastrado."}
-        </p>
-        <p class="muted" style="font-size: 0.88rem">
-          ${state.writing.docs.length > 0 ? `Último doc: <strong>${state.writing.docs[0].title}</strong>` : "Nenhum documento."}
-        </p>
+        <div>
+          ${state.projects.length > 0 ? `
+            <div class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-text">Projeto mais recente: <strong>${state.projects[0].name}</strong></div>
+            </div>` : ""}
+          ${state.writing.docs.length > 0 ? `
+            <div class="activity-item">
+              <div class="activity-dot" style="background:var(--success)"></div>
+              <div class="activity-text">Último documento: <strong>${state.writing.docs[0].title}</strong></div>
+            </div>` : ""}
+          ${state.brainstorm.ideas.length > 0 ? `
+            <div class="activity-item">
+              <div class="activity-dot" style="background:var(--warning)"></div>
+              <div class="activity-text">Ideia recente: <strong>${state.brainstorm.ideas[0].title}</strong></div>
+            </div>` : ""}
+          ${state.mindmap.nodes.length > 1 ? `
+            <div class="activity-item">
+              <div class="activity-dot" style="background:var(--danger)"></div>
+              <div class="activity-text">Mapa mental com <strong>${state.mindmap.nodes.length}</strong> nós</div>
+            </div>` : ""}
+          ${state.projects.length === 0 && state.writing.docs.length === 0 && state.brainstorm.ideas.length === 0 ? `
+            <div class="empty-state" style="padding:20px 10px">
+              <p>Comece criando um projeto ou documento.</p>
+            </div>` : ""}
+        </div>
       </article>
     </div>
   `;
 }
 
 function renderProjects(state) {
+  const statusColor = (s) => {
+    const m = {"Planejamento":"var(--accent)","Em andamento":"var(--warning)","Pausado":"var(--muted)","Concluído":"var(--success)"};
+    return m[s] || "var(--muted)";
+  };
   const statusBadge = (status) => {
-    const map = {
-      "Planejamento": "accent",
-      "Em andamento": "warning",
-      "Pausado": "muted",
-      "Concluído": "success"
-    };
+    const map = {"Planejamento":"accent","Em andamento":"warning","Pausado":"muted","Concluído":"success"};
     return `<span class="badge ${map[status] || "muted"}">${status}</span>`;
   };
 
   views.projects.innerHTML = `
-    <div class="page-header">
-      <h2>Projetos</h2>
-      <p>Gerencie seus projetos de conteúdo e produção.</p>
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <h2>Projetos</h2>
+        <p>Gerencie seus projetos de conteúdo e produção.</p>
+      </div>
+      <span class="badge muted">${state.projects.length} projeto${state.projects.length !== 1 ? "s" : ""}</span>
     </div>
-    <div class="grid two">
-      <article class="card">
-        <div class="card-header"><h3>Novo projeto</h3></div>
-        <div style="display: flex; flex-direction: column; gap: 12px">
-          <div>
-            <label>Nome</label>
-            <input id="project-name" placeholder="Ex: Série sobre produtividade" />
-          </div>
-          <div>
-            <label>Descrição</label>
-            <textarea id="project-desc" placeholder="Objetivo e escopo do projeto" style="min-height: 80px"></textarea>
-          </div>
-          <div>
-            <label>Status</label>
-            <select id="project-status">
-              <option>Planejamento</option>
-              <option>Em andamento</option>
-              <option>Pausado</option>
-              <option>Concluído</option>
-            </select>
-          </div>
-          <div class="actions">
-            <button class="primary" id="add-project-btn">Criar projeto</button>
-          </div>
+
+    <article class="card" style="margin-bottom:20px">
+      <div class="card-header"><h3>Novo projeto</h3></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end">
+        <div>
+          <label>Nome</label>
+          <input id="project-name" placeholder="Ex: Série sobre produtividade" />
         </div>
-      </article>
-      <article class="card">
-        <div class="card-header"><h3>Todos os projetos</h3></div>
-        ${state.projects.length === 0 ? `
-          <div class="empty-state">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <p>Nenhum projeto ainda.</p>
+        <div>
+          <label>Status</label>
+          <select id="project-status">
+            <option>Planejamento</option>
+            <option>Em andamento</option>
+            <option>Pausado</option>
+            <option>Concluído</option>
+          </select>
+        </div>
+        <button class="primary" id="add-project-btn" style="white-space:nowrap">+ Criar</button>
+      </div>
+      <div style="margin-top:10px">
+        <label>Descrição <span class="muted" style="font-weight:400">(opcional)</span></label>
+        <input id="project-desc" placeholder="Objetivo e escopo do projeto" />
+      </div>
+    </article>
+
+    ${state.projects.length === 0 ? `
+      <div class="empty-state" style="padding:48px 20px">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        <p style="margin-top:8px">Nenhum projeto ainda. Crie o primeiro acima.</p>
+      </div>
+    ` : `
+      <div class="project-grid">
+        ${state.projects.map((project) => `
+          <div class="project-card">
+            <div class="project-status-bar" style="background:${statusColor(project.status)}"></div>
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+              <h4>${project.name}</h4>
+              ${statusBadge(project.status)}
+            </div>
+            <p class="project-desc">${project.description || "Sem descrição"}</p>
+            <div class="actions">
+              <select data-project-status="${project.id}" style="width:auto;min-width:140px;padding:6px 10px;font-size:0.8rem">
+                <option ${project.status === "Planejamento" ? "selected" : ""}>Planejamento</option>
+                <option ${project.status === "Em andamento" ? "selected" : ""}>Em andamento</option>
+                <option ${project.status === "Pausado" ? "selected" : ""}>Pausado</option>
+                <option ${project.status === "Concluído" ? "selected" : ""}>Concluído</option>
+              </select>
+              <button class="danger" data-project-delete="${project.id}" style="padding:6px 12px;font-size:0.8rem">Remover</button>
+            </div>
           </div>
-        ` : `
-          <div class="list">
-            ${state.projects
-              .map(
-                (project) => `
-                <div class="list-item">
-                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px">
-                    <strong>${project.name}</strong>
-                    ${statusBadge(project.status)}
-                  </div>
-                  <p class="muted" style="font-size: 0.85rem; margin-bottom: 10px">${project.description || "Sem descrição"}</p>
-                  <div class="actions">
-                    <select data-project-status="${project.id}" style="width: auto; min-width: 140px">
-                      <option ${project.status === "Planejamento" ? "selected" : ""}>Planejamento</option>
-                      <option ${project.status === "Em andamento" ? "selected" : ""}>Em andamento</option>
-                      <option ${project.status === "Pausado" ? "selected" : ""}>Pausado</option>
-                      <option ${project.status === "Concluído" ? "selected" : ""}>Concluído</option>
-                    </select>
-                    <button class="danger" data-project-delete="${project.id}">Remover</button>
-                  </div>
-                </div>
-              `
-              )
-              .join("")}
-          </div>
-        `}
-      </article>
-    </div>
+        `).join("")}
+      </div>
+    `}
   `;
 
   views.projects.querySelector("#add-project-btn").addEventListener("click", () => {
@@ -325,7 +363,7 @@ function renderKanban(state) {
   views.kanban.innerHTML = `
     <div class="page-header">
       <h2>Kanban</h2>
-      <p>Kanban avançado integrado ao projeto principal.</p>
+      <p>Quadro avançado para organização de tarefas e fluxos.</p>
     </div>
     <div class="card kanban-embedded-card">
       <iframe
@@ -348,20 +386,26 @@ function renderWriting(state) {
     return `<span class="badge ${map[kind] || "muted"}">${kind}</span>`;
   };
 
+  const wordCount = selected?.content ? selected.content.trim().split(/\s+/).filter(Boolean).length : 0;
+
   views.writing.innerHTML = `
-    <div class="page-header">
-      <h2>Escrita</h2>
-      <p>Roteiros, artigos, notas e textos num só editor.</p>
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <h2>Escrita</h2>
+        <p>Roteiros, artigos, notas e textos num só editor.</p>
+      </div>
+      <button class="primary" id="new-doc-btn" style="padding:8px 16px;font-size:0.82rem">+ Novo documento</button>
     </div>
-    <div class="grid two">
-      <article class="card">
+
+    <div class="writing-layout">
+      <article class="card" style="overflow:hidden">
         <div class="card-header">
           <h3>Documentos</h3>
-          <button class="primary" id="new-doc-btn" style="padding: 6px 14px; font-size: 0.82rem">+ Novo</button>
+          <span class="badge muted">${state.writing.docs.length}</span>
         </div>
         ${state.writing.docs.length === 0 ? `
-          <div class="empty-state">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <div class="empty-state" style="padding:24px 10px">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             <p>Crie seu primeiro documento.</p>
           </div>
         ` : `
@@ -372,11 +416,11 @@ function renderWriting(state) {
                 <button class="list-item ${
                   doc.id === selectedDocId ? "active" : ""
                 }" data-doc-open="${doc.id}">
-                  <div style="display: flex; justify-content: space-between; align-items: center">
-                    <strong style="font-size: 0.9rem">${doc.title}</strong>
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <strong style="font-size:0.88rem">${doc.title}</strong>
                     ${kindBadge(doc.kind)}
                   </div>
-                  <p class="muted" style="font-size: 0.8rem; margin-top: 4px">${new Date(
+                  <p class="muted" style="font-size:0.76rem;margin-top:4px">${new Date(
                     doc.updatedAt
                   ).toLocaleDateString("pt-BR")}</p>
                 </button>
@@ -386,37 +430,48 @@ function renderWriting(state) {
           </div>
         `}
       </article>
+
       <article class="card">
-        <div class="card-header"><h3>Editor</h3></div>
-        <div style="display: flex; flex-direction: column; gap: 12px">
-          <div>
-            <label>Título</label>
-            <input id="doc-title" value="${selected?.title || ""}" placeholder="Título do documento" />
-          </div>
-          <div>
-            <label>Tipo</label>
-            <select id="doc-kind">
-              ${["roteiro", "artigo", "nota", "texto"]
-                .map(
-                  (kind) =>
-                    `<option ${selected?.kind === kind ? "selected" : ""}>${kind}</option>`
-                )
-                .join("")}
-            </select>
-          </div>
-          <div>
-            <label>Conteúdo</label>
-            <textarea id="doc-content" placeholder="Escreva aqui..." style="min-height: 180px">${
-              selected?.content || ""
-            }</textarea>
-          </div>
-          <div class="actions">
-            <button class="primary" id="save-doc-btn">Salvar</button>
-            <button class="danger" id="delete-doc-btn" ${
-              selected ? "" : "disabled"
-            }>Excluir</button>
-          </div>
+        <div class="card-header">
+          <h3>Editor</h3>
+          ${selected ? `<span class="badge muted">${wordCount} palavra${wordCount !== 1 ? "s" : ""}</span>` : ""}
         </div>
+        ${!selected ? `
+          <div class="empty-state" style="padding:40px 10px">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>Selecione ou crie um documento.</p>
+          </div>
+        ` : `
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end">
+              <div>
+                <label>Título</label>
+                <input id="doc-title" value="${selected.title}" placeholder="Título do documento" />
+              </div>
+              <div>
+                <label>Tipo</label>
+                <select id="doc-kind">
+                  ${["roteiro", "artigo", "nota", "texto"]
+                    .map(
+                      (kind) =>
+                        `<option ${selected.kind === kind ? "selected" : ""}>${kind}</option>`
+                    )
+                    .join("")}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label>Conteúdo</label>
+              <textarea id="doc-content" placeholder="Escreva aqui..." style="min-height:260px;font-size:0.9rem;line-height:1.7">${
+                selected.content || ""
+              }</textarea>
+            </div>
+            <div class="actions">
+              <button class="primary" id="save-doc-btn">Salvar</button>
+              <button class="danger" id="delete-doc-btn">Excluir</button>
+            </div>
+          </div>
+        `}
       </article>
     </div>
   `;
@@ -455,7 +510,7 @@ function renderWriting(state) {
     });
   });
 
-  views.writing.querySelector("#save-doc-btn").addEventListener("click", () => {
+  views.writing.querySelector("#save-doc-btn")?.addEventListener("click", () => {
     const title = views.writing.querySelector("#doc-title").value.trim();
     const kind = views.writing.querySelector("#doc-kind").value;
     const content = views.writing.querySelector("#doc-content").value;
@@ -481,7 +536,7 @@ function renderWriting(state) {
     }));
   });
 
-  views.writing.querySelector("#delete-doc-btn").addEventListener("click", () => {
+  views.writing.querySelector("#delete-doc-btn")?.addEventListener("click", () => {
     if (!selectedDocId) return;
 
     store.setState((prev) => {
@@ -498,62 +553,69 @@ function renderWriting(state) {
 }
 
 function renderBrainstorm(state) {
+  const sortedIdeas = [...state.brainstorm.ideas].sort((a, b) => b.votes - a.votes);
+
   views.brainstorm.innerHTML = `
-    <div class="page-header">
-      <h2>Brainstorm</h2>
-      <p>Registre e priorize ideias por votação.</p>
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <h2>Brainstorm</h2>
+        <p>Registre e priorize ideias por votação.</p>
+      </div>
+      <span class="badge muted">${state.brainstorm.ideas.length} ideia${state.brainstorm.ideas.length !== 1 ? "s" : ""}</span>
     </div>
-    <div class="grid two">
-      <article class="card">
-        <div class="card-header"><h3>Nova ideia</h3></div>
-        <div style="display: flex; flex-direction: column; gap: 12px">
-          <div>
-            <label>Título</label>
-            <input id="idea-title" placeholder="Ex: Série de vídeos curtos" />
-          </div>
-          <div>
-            <label>Descrição</label>
-            <textarea id="idea-content" placeholder="Detalhe a ideia" style="min-height: 80px"></textarea>
-          </div>
-          <div class="actions">
-            <button class="primary" id="add-idea-btn">Adicionar ideia</button>
-          </div>
+
+    <article class="card" style="margin-bottom:20px">
+      <div class="card-header"><h3>Nova ideia</h3></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end">
+        <div>
+          <label>Título</label>
+          <input id="idea-title" placeholder="Ex: Série de vídeos curtos" />
         </div>
-      </article>
+        <div>
+          <label>Descrição <span class="muted" style="font-weight:400">(opcional)</span></label>
+          <input id="idea-content" placeholder="Detalhe a ideia" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="primary" id="add-idea-btn">+ Adicionar ideia</button>
+      </div>
+    </article>
+
+    ${state.brainstorm.ideas.length === 0 ? `
+      <div class="empty-state" style="padding:48px 20px">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        <p style="margin-top:8px">Adicione sua primeira ideia acima.</p>
+      </div>
+    ` : `
       <article class="card">
         <div class="card-header">
-          <h3>Backlog de ideias</h3>
-          <span class="badge muted">${state.brainstorm.ideas.length}</span>
+          <h3>Ranking de ideias</h3>
         </div>
-        ${state.brainstorm.ideas.length === 0 ? `
-          <div class="empty-state">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-            <p>Adicione sua primeira ideia.</p>
-          </div>
-        ` : `
-          <div class="list">
-            ${state.brainstorm.ideas
-              .map(
-                (idea) => `
-                <div class="list-item">
-                  <div style="display: flex; justify-content: space-between; align-items: start">
-                    <strong style="font-size: 0.9rem">${idea.title}</strong>
-                    <span class="badge ${idea.votes > 0 ? "accent" : "muted"}">▲ ${idea.votes}</span>
+        <div class="list">
+          ${sortedIdeas
+            .map(
+              (idea, idx) => `
+              <div class="list-item" style="display:flex;gap:14px;align-items:start">
+                <div class="rank-number ${idx < 3 ? "top" : ""}">${idx + 1}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                    <strong style="font-size:0.9rem">${idea.title}</strong>
+                    <span class="badge ${idea.votes > 0 ? "accent" : "muted"}">&#9650; ${idea.votes}</span>
                   </div>
-                  ${idea.content ? `<p class="muted" style="font-size: 0.82rem; margin-top: 4px">${idea.content}</p>` : ""}
-                  <div class="actions" style="margin-top: 8px">
-                    <button class="ghost" data-idea-vote-up="${idea.id}">▲ Votar</button>
-                    <button class="ghost" data-idea-vote-down="${idea.id}">▼</button>
-                    <button class="ghost" style="color: var(--danger)" data-idea-delete="${idea.id}">Excluir</button>
+                  ${idea.content ? `<p class="muted" style="font-size:0.82rem;margin-top:4px">${idea.content}</p>` : ""}
+                  <div class="actions" style="margin-top:8px">
+                    <button class="ghost" data-idea-vote-up="${idea.id}">&#9650; Votar</button>
+                    <button class="ghost" data-idea-vote-down="${idea.id}">&#9660;</button>
+                    <button class="ghost" style="color:var(--danger)" data-idea-delete="${idea.id}">Excluir</button>
                   </div>
                 </div>
-              `
-              )
-              .join("")}
-          </div>
-        `}
+              </div>
+            `
+            )
+            .join("")}
+        </div>
       </article>
-    </div>
+    `}
   `;
 
   views.brainstorm.querySelector("#add-idea-btn").addEventListener("click", () => {
@@ -618,40 +680,47 @@ function renderMindmap(state) {
     .join("");
 
   views.mindmap.innerHTML = `
-    <div class="page-header">
-      <h2>Mapa Mental</h2>
-      <p>Organize temas em árvore hierárquica.</p>
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <h2>Mapa Mental</h2>
+        <p>Organize temas em árvore hierárquica.</p>
+      </div>
+      <span class="badge muted">${state.mindmap.nodes.length} nó${state.mindmap.nodes.length !== 1 ? "s" : ""}</span>
     </div>
-    <div class="grid two">
-      <article class="card">
-        <div class="card-header"><h3>Novo nó</h3></div>
-        <div style="display: flex; flex-direction: column; gap: 12px">
-          <div>
-            <label>Rótulo</label>
-            <input id="node-label" placeholder="Ex: Ângulo de conteúdo" />
-          </div>
-          <div>
-            <label>Nó pai</label>
-            <select id="node-parent">
-              <option value="">Sem pai (novo tema raiz)</option>
-              ${options}
-            </select>
-          </div>
-          <div class="actions">
-            <button class="primary" id="add-node-btn">Adicionar nó</button>
-          </div>
+
+    <article class="card" style="margin-bottom:20px">
+      <div class="card-header"><h3>Novo nó</h3></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end">
+        <div>
+          <label>Rótulo</label>
+          <input id="node-label" placeholder="Ex: Ângulo de conteúdo" />
         </div>
-      </article>
-      <article class="card">
-        <div class="card-header">
-          <h3>Estrutura</h3>
-          <span class="badge muted">${state.mindmap.nodes.length} nós</span>
+        <div>
+          <label>Nó pai</label>
+          <select id="node-parent">
+            <option value="">Sem pai (novo tema raiz)</option>
+            ${options}
+          </select>
         </div>
+        <button class="primary" id="add-node-btn" style="white-space:nowrap">+ Adicionar</button>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-header">
+        <h3>Estrutura</h3>
+      </div>
+      ${state.mindmap.nodes.length === 0 ? `
+        <div class="empty-state" style="padding:36px 10px">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="21"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/></svg>
+          <p style="margin-top:8px">Adicione o primeiro nó para começar.</p>
+        </div>
+      ` : `
         <div class="tree">
           ${renderMindTree(state.mindmap.nodes, null)}
         </div>
-      </article>
-    </div>
+      `}
+    </article>
   `;
 
   views.mindmap.querySelector("#add-node-btn").addEventListener("click", () => {
@@ -722,19 +791,23 @@ function renderWhiteboard(state) {
       <h2>Whiteboard</h2>
       <p>Desenhe livremente para rascunhos e fluxos visuais.</p>
     </div>
-    <article class="card">
-      <div class="actions" style="margin-bottom: 12px">
-        <label style="margin-bottom: 0; display: flex; align-items: center; gap: 8px">
+    <article class="card" style="padding:0;overflow:hidden">
+      <div class="wb-toolbar">
+        <label>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
           Cor
-          <input type="color" id="brush-color" value="#1a1a1a" style="width: 36px; height: 36px; padding: 2px; cursor: pointer" />
+          <input type="color" id="brush-color" value="#1a1a1a" style="width:32px;height:32px;padding:2px;cursor:pointer;border:1px solid var(--border);border-radius:var(--radius-sm)" />
         </label>
-        <label style="margin-bottom: 0; display: flex; align-items: center; gap: 8px">
+        <label>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"/></svg>
           Tamanho
-          <input type="range" id="brush-size" min="1" max="12" value="3" style="width: 100px" />
+          <input type="range" id="brush-size" min="1" max="12" value="3" style="width:100px;accent-color:var(--accent)" />
         </label>
-        <button class="secondary" id="clear-board-btn">Limpar quadro</button>
+        <div style="margin-left:auto">
+          <button class="secondary" id="clear-board-btn" style="padding:6px 14px;font-size:0.8rem">Limpar quadro</button>
+        </div>
       </div>
-      <div class="canvas-wrap">
+      <div class="canvas-wrap" style="border:none;border-radius:0;border-top:1px solid var(--border)">
         <canvas id="whiteboard-canvas"></canvas>
       </div>
     </article>
