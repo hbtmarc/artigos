@@ -1,10 +1,10 @@
-# Kanban Offline (/kanban)
+# Kanban Local (/kanban)
 
-Kanban web app com persistência local (IndexedDB) usando `localForage` e drag-and-drop com `SortableJS`.
+Aplicação web Kanban com persistência local (IndexedDB) usando `localForage` e arrastar/soltar com `SortableJS`.
 
 ## Recursos
 
-- Board selector + New board + Project filter
+- Seletor de quadro + Novo quadro + Filtro de projeto
 - Colunas customizáveis: adicionar, renomear, excluir
 - Reordenação de colunas por drag-and-drop
 - Cards: adicionar, editar em modal, mover entre colunas por drag-and-drop
@@ -14,7 +14,7 @@ Kanban web app com persistência local (IndexedDB) usando `localForage` e drag-a
 - Ctrl+V no editor do card:
   - cola imagem/arquivo do clipboard como anexo
   - cola HTML/texto no campo de descrição (sanitizado)
-- Export JSON / Import JSON
+- Exportar JSON / Importar JSON
 
 ## Stack
 
@@ -32,9 +32,13 @@ python3 -m http.server 5500
 
 2. Abra:
 
-- `http://localhost:5500/kanban/`
+- `http://localhost:5500/index.html` e acesse a aba Kanban.
 
-> Também funciona com VS Code Live Server.
+Observação:
+
+- `http://localhost:5500/kanban/` redireciona para a aplicação principal.
+
+> Também funciona com a extensão Live Server do VS Code.
 
 ## Modelo de dados
 
@@ -53,5 +57,5 @@ python3 -m http.server 5500
 
 ## Limitações
 
-- Não há colaboração em tempo real (offline/local apenas).
+- Não há colaboração em tempo real (somente local/offline).
 - Sanitização de HTML é básica (remove tags/atributos perigosos mais comuns).

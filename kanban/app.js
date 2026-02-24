@@ -1,8 +1,8 @@
 /*
-  Kanban Offline App
-  - Storage: localForage (IndexedDB)
-  - Drag and Drop: SortableJS
-  - Simple and readable structure for junior devs
+  App Kanban Local
+  - Armazenamento: localForage (IndexedDB)
+  - Arrastar e soltar: SortableJS
+  - Estrutura simples e legível
 */
 
 const STORAGE_KEY = "kanban_state_v1";
@@ -47,12 +47,25 @@ const dom = {
   checklistList: document.querySelector("#checklist-list"),
   addAttachmentBtn: document.querySelector("#add-attachment-btn"),
   attachmentFileInput: document.querySelector("#attachment-file-input"),
-  attachmentList: document.querySelector("#attachment-list")
+  attachmentList: document.querySelector("#attachment-list"),
+
+  uiDialog: document.querySelector("#ui-dialog"),
+  uiDialogTitle: document.querySelector("#ui-dialog-title"),
+  uiDialogMessage: document.querySelector("#ui-dialog-message"),
+  uiDialogInputWrap: document.querySelector("#ui-dialog-input-wrap"),
+  uiDialogLabel: document.querySelector("#ui-dialog-label"),
+  uiDialogInput: document.querySelector("#ui-dialog-input"),
+  uiDialogCloseBtn: document.querySelector("#ui-dialog-close-btn"),
+  uiDialogCancelBtn: document.querySelector("#ui-dialog-cancel-btn"),
+  uiDialogConfirmBtn: document.querySelector("#ui-dialog-confirm-btn"),
+  toastContainer: document.querySelector("#toast-container")
 };
 
 let sortableColumns = null;
 const sortableCardLists = [];
 const attachmentPreviewUrls = [];
+let dialogResolver = null;
+let dialogMode = null;
 
 function createId(prefix) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -65,6 +78,70 @@ function nowISO() {
 function fmtDate(value) {
   if (!value) return "";
   return new Date(value).toLocaleString("pt-BR");
+}
+
+function mostrarToast(mensagem, tipo = "normal") {
+  const item = document.createElement("div");
+  item.className = `toast ${tipo}`;
+  item.textContent = mensagem;
+  dom.toastContainer.appendChild(item);
+
+  setTimeout(() => {
+    item.remove();
+  }, 2600);
+}
+
+function fecharDialogoInterno(resultado = null) {
+  if (dialogResolver) {
+    dialogResolver(resultado);
+    dialogResolver = null;
+  }
+
+  dialogMode = null;
+  dom.uiDialog.classList.add("hidden");
+  dom.uiDialog.setAttribute("aria-hidden", "true");
+}
+
+function abrirDialogoTexto({ titulo, label, valorInicial = "", placeholder = "", botaoConfirmar = "Confirmar" }) {
+  return new Promise((resolve) => {
+    dialogResolver = resolve;
+    dialogMode = "texto";
+
+    dom.uiDialogTitle.textContent = titulo;
+    dom.uiDialogMessage.textContent = "";
+    dom.uiDialogInputWrap.classList.remove("hidden");
+    dom.uiDialogLabel.textContent = label;
+    dom.uiDialogInput.value = valorInicial;
+    dom.uiDialogInput.placeholder = placeholder;
+    dom.uiDialogConfirmBtn.textContent = botaoConfirmar;
+    dom.uiDialogConfirmBtn.classList.remove("danger");
+    dom.uiDialogConfirmBtn.classList.add("primary");
+
+    dom.uiDialog.classList.remove("hidden");
+    dom.uiDialog.setAttribute("aria-hidden", "false");
+
+    setTimeout(() => {
+      dom.uiDialogInput.focus();
+      dom.uiDialogInput.select();
+    }, 0);
+  });
+}
+
+function abrirDialogoConfirmacao({ titulo, mensagem, botaoConfirmar = "Excluir" }) {
+  return new Promise((resolve) => {
+    dialogResolver = resolve;
+    dialogMode = "confirmacao";
+
+    dom.uiDialogTitle.textContent = titulo;
+    dom.uiDialogMessage.textContent = mensagem;
+    dom.uiDialogInputWrap.classList.add("hidden");
+    dom.uiDialogConfirmBtn.textContent = botaoConfirmar;
+    dom.uiDialogConfirmBtn.classList.remove("primary");
+    dom.uiDialogConfirmBtn.classList.add("danger");
+
+    dom.uiDialog.classList.remove("hidden");
+    dom.uiDialog.setAttribute("aria-hidden", "false");
+  });
 }
 
 function clearAttachmentPreviewUrls() {
@@ -132,14 +209,14 @@ function normalizeState(raw) {
 
   if (!normalized.projects.length) {
     const projectId = createId("project");
-    normalized.projects.push({ id: projectId, name: "General", color: "#4f6ef7" });
+    normalized.projects.push({ id: projectId, name: "Geral", color: "#4f6ef7" });
   }
 
   if (!normalized.boards.length) {
     const boardId = createId("board");
     normalized.boards.push({
       id: boardId,
-      name: "Main board",
+      name: "Quadro principal",
       projectId: normalized.projects[0].id,
       columnOrder: []
     });
@@ -159,7 +236,7 @@ async function loadState() {
     const loaded = normalizeState(raw || {});
     Object.assign(state, loaded);
   } catch (error) {
-    console.error("Failed to load state:", error);
+    console.error("Falha ao carregar estado:", error);
     Object.assign(state, normalizeState({}));
   }
 }
@@ -178,8 +255,8 @@ async function saveState() {
 
     await store.setItem(STORAGE_KEY, payload);
   } catch (error) {
-    console.error("Failed to save state:", error);
-    alert("Não foi possível salvar no IndexedDB.");
+    console.error("Falha ao salvar estado:", error);
+    mostrarToast("Não foi possível salvar no IndexedDB.", "erro");
   }
 }
 
@@ -214,7 +291,7 @@ function activeBoards() {
 
 function renderProjectFilter() {
   const options = [
-    `<option value="all" ${state.selectedProjectId === "all" ? "selected" : ""}>All projects</option>`,
+    `<option value="all" ${state.selectedProjectId === "all" ? "selected" : ""}>Todos os projetos</option>`,
     ...state.projects.map(
       (project) =>
         `<option value="${project.id}" ${state.selectedProjectId === project.id ? "selected" : ""}>${project.name}</option>`
@@ -245,18 +322,18 @@ function renderBoardSelector() {
 function renderBoardMeta() {
   const board = getBoard();
   if (!board) {
-    dom.boardMeta.textContent = "No board selected";
+    dom.boardMeta.textContent = "Nenhum quadro selecionado";
     return;
   }
 
   const project = state.projects.find((item) => item.id === board.projectId);
-  dom.boardMeta.textContent = `${project?.name || "No project"} • Updated ${fmtDate(new Date().toISOString())}`;
+  dom.boardMeta.textContent = `${project?.name || "Sem projeto"} • Atualizado em ${fmtDate(new Date().toISOString())}`;
 }
 
 function renderColumns() {
   const board = getBoard();
   if (!board) {
-    dom.columnsContainer.innerHTML = `<article class="empty-board">No board. Create one using “New board”.</article>`;
+    dom.columnsContainer.innerHTML = `<article class="empty-board">Nenhum quadro. Crie um em “Novo quadro”.</article>`;
     bindSortables();
     return;
   }
@@ -264,7 +341,7 @@ function renderColumns() {
   const columns = getColumnsForBoard(board.id);
 
   if (!columns.length) {
-    dom.columnsContainer.innerHTML = `<article class="empty-board">No columns yet. Click “Add column”.</article>`;
+    dom.columnsContainer.innerHTML = `<article class="empty-board">Nenhuma coluna ainda. Clique em “Adicionar coluna”.</article>`;
     bindSortables();
     return;
   }
@@ -277,8 +354,8 @@ function renderColumns() {
           <header class="column-header">
             <h3 class="column-title">${column.title}</h3>
             <div class="column-actions">
-              <button class="btn ghost" data-action="rename-column" data-column-id="${column.id}">Rename</button>
-              <button class="btn ghost" data-action="delete-column" data-column-id="${column.id}">Delete</button>
+              <button class="btn ghost" data-action="rename-column" data-column-id="${column.id}">Renomear</button>
+              <button class="btn ghost" data-action="delete-column" data-column-id="${column.id}">Excluir</button>
             </div>
           </header>
           <div class="card-list" data-column-id="${column.id}">
@@ -287,10 +364,10 @@ function renderColumns() {
                 const doneCount = card.checklist.filter((item) => item.done).length;
                 const checklistText = card.checklist.length
                   ? `${doneCount}/${card.checklist.length} checklist`
-                  : "No checklist";
+                  : "Sem checklist";
                 const attachmentText = card.attachments.length
-                  ? `${card.attachments.length} attachment(s)`
-                  : "No attachments";
+                  ? `${card.attachments.length} anexo(s)`
+                  : "Sem anexos";
 
                 return `
                   <article class="card" data-card-id="${card.id}" data-action="open-card">
@@ -305,7 +382,7 @@ function renderColumns() {
               .join("")}
           </div>
           <footer class="column-footer">
-            <button class="btn secondary" data-action="add-card" data-column-id="${column.id}">+ Add card</button>
+            <button class="btn secondary" data-action="add-card" data-column-id="${column.id}">+ Adicionar card</button>
           </footer>
         </article>
       `;
@@ -315,18 +392,49 @@ function renderColumns() {
   bindSortables();
 }
 
+function atualizarSugestaoColunasPadrao() {
+  const quadro = getBoard();
+  if (!quadro) {
+    dom.addColumnBtn.classList.remove("show-default-hint");
+    return;
+  }
+
+  const colunas = getColumnsForBoard(quadro.id);
+  const semColunas = colunas.length === 0;
+
+  if (semColunas) {
+    dom.addColumnBtn.classList.add("show-default-hint");
+    return;
+  }
+
+  dom.addColumnBtn.classList.remove("show-default-hint");
+}
+
 function renderAll() {
   renderProjectFilter();
   renderBoardSelector();
   renderBoardMeta();
   renderColumns();
+  atualizarSugestaoColunasPadrao();
 }
 
-function addProject() {
-  const name = prompt("Project name:");
+async function addProject() {
+  const name = await abrirDialogoTexto({
+    titulo: "Novo projeto",
+    label: "Nome do projeto",
+    placeholder: "Ex: Conteúdo 2026",
+    botaoConfirmar: "Criar"
+  });
   if (!name || !name.trim()) return;
 
-  const color = prompt("Project color (hex, optional):", "#4f6ef7") || "#4f6ef7";
+  const color =
+    (await abrirDialogoTexto({
+      titulo: "Cor do projeto",
+      label: "Cor em hexadecimal (opcional)",
+      valorInicial: "#4f6ef7",
+      placeholder: "#4f6ef7",
+      botaoConfirmar: "Salvar"
+    })) || "#4f6ef7";
 
   state.projects.push({
     id: createId("project"),
@@ -338,15 +446,20 @@ function addProject() {
   renderAll();
 }
 
-function addBoard() {
-  const name = prompt("Board name:");
+async function addBoard() {
+  const name = await abrirDialogoTexto({
+    titulo: "Novo quadro",
+    label: "Nome do quadro",
+    placeholder: "Ex: Planejamento Semanal",
+    botaoConfirmar: "Criar"
+  });
   if (!name || !name.trim()) return;
 
   const possibleProjectId =
     state.selectedProjectId !== "all" ? state.selectedProjectId : state.projects[0]?.id;
 
   if (!possibleProjectId) {
-    alert("Create a project first.");
+    mostrarToast("Crie um projeto primeiro.", "erro");
     return;
   }
 
@@ -363,11 +476,16 @@ function addBoard() {
   renderAll();
 }
 
-function addColumn() {
+async function addColumn() {
   const board = getBoard();
   if (!board) return;
 
-  const title = prompt("Column title:");
+  const title = await abrirDialogoTexto({
+    titulo: "Nova coluna",
+    label: "Título da coluna",
+    placeholder: "Ex: Backlog",
+    botaoConfirmar: "Adicionar"
+  });
   if (!title || !title.trim()) return;
 
   const columnId = createId("column");
@@ -383,11 +501,16 @@ function addColumn() {
   renderAll();
 }
 
-function renameColumn(columnId) {
+async function renameColumn(columnId) {
   const column = state.columns.find((item) => item.id === columnId);
   if (!column) return;
 
-  const nextTitle = prompt("New column title:", column.title);
+  const nextTitle = await abrirDialogoTexto({
+    titulo: "Renomear coluna",
+    label: "Novo título",
+    valorInicial: column.title,
+    botaoConfirmar: "Salvar"
+  });
   if (!nextTitle || !nextTitle.trim()) return;
 
   column.title = nextTitle.trim();
@@ -395,11 +518,16 @@ function renameColumn(columnId) {
   renderAll();
 }
 
-function deleteColumn(columnId) {
+async function deleteColumn(columnId) {
   const column = state.columns.find((item) => item.id === columnId);
   if (!column) return;
 
-  if (!confirm(`Delete column “${column.title}” and all cards?`)) return;
+  const confirmar = await abrirDialogoConfirmacao({
+    titulo: "Excluir coluna",
+    mensagem: `Deseja excluir a coluna “${column.title}” e todos os cards?`,
+    botaoConfirmar: "Excluir"
+  });
+  if (!confirmar) return;
 
   const cardIds = [...column.cardOrder];
 
@@ -423,11 +551,16 @@ function deleteColumn(columnId) {
   renderAll();
 }
 
-function addCard(columnId) {
+async function addCard(columnId) {
   const column = state.columns.find((item) => item.id === columnId);
   if (!column) return;
 
-  const title = prompt("Card title:");
+  const title = await abrirDialogoTexto({
+    titulo: "Novo card",
+    label: "Título do card",
+    placeholder: "Ex: Revisar artigo",
+    botaoConfirmar: "Criar"
+  });
   if (!title || !title.trim()) return;
 
   const cardId = createId("card");
@@ -482,7 +615,7 @@ function renderChecklist(card) {
       } />
           <span class="${item.done ? "checklist-done" : ""}">${item.text}</span>
         </div>
-        <button class="btn ghost" data-action="delete-check-item" data-check-item-id="${item.id}">Delete</button>
+        <button class="btn ghost" data-action="delete-check-item" data-check-item-id="${item.id}">Excluir</button>
       </li>
     `
     )
@@ -497,7 +630,7 @@ function renderAttachments(card) {
     .filter(Boolean);
 
   if (!attachments.length) {
-    dom.attachmentList.innerHTML = `<li class="muted">No attachments</li>`;
+    dom.attachmentList.innerHTML = `<li class="muted">Sem anexos</li>`;
     return;
   }
 
@@ -515,7 +648,7 @@ function renderAttachments(card) {
         <li class="attachment-item" data-attachment-id="${att.id}">
           ${previewHtml}
           <span class="attachment-name">${att.name}</span>
-          <button class="btn ghost" data-action="delete-attachment" data-attachment-id="${att.id}">Delete</button>
+          <button class="btn ghost" data-action="delete-attachment" data-attachment-id="${att.id}">Excluir</button>
         </li>
       `;
     })
@@ -528,7 +661,7 @@ function saveCardFromModal() {
 
   const title = dom.modalTitleInput.value.trim();
   if (!title) {
-    alert("Title is required.");
+    mostrarToast("O título é obrigatório.", "erro");
     return;
   }
 
@@ -541,11 +674,16 @@ function saveCardFromModal() {
   closeCardModal();
 }
 
-function deleteCard(cardId) {
+async function deleteCard(cardId) {
   const card = state.cards.find((item) => item.id === cardId);
   if (!card) return;
 
-  if (!confirm("Delete this card?")) return;
+  const confirmar = await abrirDialogoConfirmacao({
+    titulo: "Excluir card",
+    mensagem: "Deseja excluir este card?",
+    botaoConfirmar: "Excluir"
+  });
+  if (!confirmar) return;
 
   state.cards = state.cards.filter((item) => item.id !== cardId);
   state.attachments = state.attachments.filter((att) => att.cardId !== cardId);
@@ -616,7 +754,7 @@ async function attachFilesToEditingCard(fileList) {
       state.attachments.push({
         id: attachmentId,
         cardId: card.id,
-        name: file.name || "clipboard-file",
+        name: file.name || "arquivo-da-area-de-transferencia",
         mime: file.type || "application/octet-stream",
         blob: file,
         createdAt: nowISO()
@@ -630,8 +768,8 @@ async function attachFilesToEditingCard(fileList) {
     renderAttachments(card);
     renderAll();
   } catch (error) {
-    console.error("Attachment save failed:", error);
-    alert("Falha ao salvar anexo no IndexedDB.");
+    console.error("Falha ao salvar anexo:", error);
+    mostrarToast("Falha ao salvar anexo no IndexedDB.", "erro");
   }
 }
 
@@ -684,7 +822,7 @@ function bindSortables() {
       animation: 140,
       draggable: ".card",
       onEnd() {
-        // Recompute order and column assignment for all visible columns.
+        // Recalcula ordem e coluna de todos os cards visíveis.
         dom.columnsContainer.querySelectorAll(".card-list").forEach((cardListEl) => {
           const columnId = cardListEl.dataset.columnId;
           const column = state.columns.find((item) => item.id === columnId);
@@ -779,7 +917,7 @@ function handleDescriptionPaste(event) {
 function exportSelectedBoard() {
   const board = getBoard();
   if (!board) {
-    alert("No board selected.");
+    mostrarToast("Nenhum quadro selecionado.", "erro");
     return;
   }
 
@@ -790,7 +928,7 @@ function exportSelectedBoard() {
   const payload = {
     exportedAt: nowISO(),
     version: 1,
-    note: "Attachments are exported without blobs to keep JSON small.",
+    note: "Anexos são exportados sem blob para manter o JSON leve.",
     project: state.projects.find((project) => project.id === board.projectId) || null,
     board,
     columns,
@@ -824,7 +962,7 @@ async function importBoardFromFile(file) {
     const data = JSON.parse(text);
 
     if (!data?.board || !Array.isArray(data.columns) || !Array.isArray(data.cards)) {
-      alert("Invalid JSON format for kanban import.");
+      mostrarToast("Formato de JSON inválido para importação do Kanban.", "erro");
       return;
     }
 
@@ -834,7 +972,7 @@ async function importBoardFromFile(file) {
     if (!state.projects.some((project) => project.id === existingProjectId)) {
       state.projects.push({
         id: existingProjectId,
-        name: data.project?.name || "Imported project",
+        name: data.project?.name || "Projeto importado",
         color: data.project?.color || "#4f6ef7"
       });
     }
@@ -860,7 +998,7 @@ async function importBoardFromFile(file) {
       return {
         id: newCardId,
         columnId: columnIdMap.get(card.columnId),
-        title: card.title || "Imported card",
+        title: card.title || "Card importado",
         descriptionHtml: sanitizeHtml(card.descriptionHtml || ""),
         checklist: Array.isArray(card.checklist) ? card.checklist : [],
         attachments: [],
@@ -877,7 +1015,7 @@ async function importBoardFromFile(file) {
 
     const board = {
       id: boardId,
-      name: `${data.board.name || "Imported board"} (imported)`,
+      name: `${data.board.name || "Quadro importado"} (importado)`,
       projectId: existingProjectId,
       columnOrder: importedColumns.map((column) => column.id)
     };
@@ -890,10 +1028,10 @@ async function importBoardFromFile(file) {
     await saveState();
     renderAll();
 
-    alert("Import finished. Note: attachment blobs are not imported.");
+    mostrarToast("Importação concluída. Observação: blobs de anexos não são importados.", "sucesso");
   } catch (error) {
-    console.error("Import failed:", error);
-    alert("Failed to import JSON.");
+    console.error("Falha na importação:", error);
+    mostrarToast("Falha ao importar JSON.", "erro");
   }
 }
 
@@ -914,9 +1052,9 @@ function setupEvents() {
     renderAll();
   });
 
-  dom.newBoardBtn.addEventListener("click", addBoard);
-  dom.newProjectBtn.addEventListener("click", addProject);
-  dom.addColumnBtn.addEventListener("click", addColumn);
+  dom.newBoardBtn.addEventListener("click", async () => addBoard());
+  dom.newProjectBtn.addEventListener("click", async () => addProject());
+  dom.addColumnBtn.addEventListener("click", async () => addColumn());
 
   dom.columnsContainer.addEventListener("click", handleColumnsClick);
 
@@ -926,8 +1064,8 @@ function setupEvents() {
   });
 
   dom.saveCardBtn.addEventListener("click", saveCardFromModal);
-  dom.deleteCardBtn.addEventListener("click", () => {
-    if (state.editingCardId) deleteCard(state.editingCardId);
+  dom.deleteCardBtn.addEventListener("click", async () => {
+    if (state.editingCardId) await deleteCard(state.editingCardId);
   });
 
   dom.addChecklistBtn.addEventListener("click", addChecklistItem);
@@ -955,6 +1093,27 @@ function setupEvents() {
   dom.importFile.addEventListener("change", async (event) => {
     await importBoardFromFile(event.target.files?.[0]);
     event.target.value = "";
+  });
+
+  dom.uiDialogCancelBtn.addEventListener("click", () => fecharDialogoInterno(null));
+  dom.uiDialogCloseBtn.addEventListener("click", () => fecharDialogoInterno(null));
+  dom.uiDialog.addEventListener("click", (event) => {
+    if (event.target.matches("[data-close-ui-dialog='true']")) {
+      fecharDialogoInterno(null);
+    }
+  });
+  dom.uiDialogConfirmBtn.addEventListener("click", () => {
+    if (dialogMode === "texto") {
+      fecharDialogoInterno(dom.uiDialogInput.value);
+      return;
+    }
+    fecharDialogoInterno(true);
+  });
+  dom.uiDialogInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      fecharDialogoInterno(dom.uiDialogInput.value);
+    }
   });
 }
 

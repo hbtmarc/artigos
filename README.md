@@ -57,7 +57,7 @@ No Realtime Database Rules, para testes locais:
 
 Para produção, configure autenticação e regras restritas.
 
-## Kanban Offline (novo)
+## Kanban Local (novo)
 
 Foi adicionado um app Kanban dedicado em `kanban/`:
 
@@ -74,4 +74,8 @@ python3 -m http.server 5500
 
 2. Abra no navegador:
 
-- `http://localhost:5500/kanban/`
+- `http://localhost:5500/index.html` e use a aba **Kanban**.
+
+Observação:
+
+- `http://localhost:5500/kanban/` redireciona para a aplicação principal.

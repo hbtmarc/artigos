@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kanban Local</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Kanban Local</h1>
+      <div class="topbar-actions">
+        <button id="export-btn" class="btn secondary">Exportar JSON</button>
+        <button id="import-btn" class="btn secondary">Importar JSON</button>
+        <input id="import-file" type="file" accept="application/json" hidden />
+      </div>
+    </header>
+
+    <section class="filters">
+      <div class="field">
+        <label for="project-filter">Filtro de projeto</label>
+        <select id="project-filter"></select>
+      </div>
+      <div class="field">
+        <label for="board-select">Seletor de quadro</label>
+        <select id="board-select"></select>
+      </div>
+      <div class="field compact">
+        <label>&nbsp;</label>
+        <button id="new-board-btn" class="btn primary">Novo quadro</button>
+      </div>
+      <div class="field compact">
+        <label>&nbsp;</label>
+        <button id="new-project-btn" class="btn secondary">Novo projeto</button>
+      </div>
+    </section>
+
+    <main class="board-wrapper">
+      <section class="board-controls">
+        <button id="add-column-btn" class="btn primary" data-hint="Sugestão: Backlog, Em Andamento e Concluído">+ Adicionar coluna</button>
+        <span id="board-meta" class="muted"></span>
+      </section>
+
+      <section id="columns-container" class="columns-container"></section>
+    </main>
+
+    <section id="card-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <article class="modal-panel">
+        <header class="modal-header">
+          <h2>Editar card</h2>
+          <button id="close-modal-btn" class="btn ghost">Fechar</button>
+        </header>
+
+        <div class="field">
+          <label for="card-title-input">Título</label>
+          <input id="card-title-input" type="text" placeholder="Título do card" />
+        </div>
+
+        <div class="field">
+          <label>Descrição</label>
+          <div id="card-description" class="description-editor" contenteditable="true"></div>
+          <small class="muted">Dica: use Ctrl+V com imagem/arquivo ou texto direto aqui.</small>
+        </div>
+
+        <div class="modal-grid">
+          <section>
+            <h3>Checklist</h3>
+            <div class="checklist-add">
+              <input id="checklist-input" type="text" placeholder="Novo item do checklist" />
+              <button id="add-checklist-btn" class="btn secondary">Adicionar</button>
+            </div>
+            <ul id="checklist-list" class="checklist-list"></ul>
+          </section>
+
+          <section>
+            <h3>Anexos</h3>
+            <div class="attachment-actions">
+              <button id="add-attachment-btn" class="btn secondary">Adicionar imagem/arquivo</button>
+              <input id="attachment-file-input" type="file" accept="image/*" hidden multiple />
+            </div>
+            <ul id="attachment-list" class="attachment-list"></ul>
+          </section>
+        </div>
+
+        <footer class="modal-footer">
+          <button id="delete-card-btn" class="btn danger">Excluir card</button>
+          <button id="save-card-btn" class="btn primary">Salvar card</button>
+        </footer>
+      </article>
+    </section>
+
+    <section id="ui-dialog" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close-ui-dialog="true"></div>
+      <article class="modal-panel ui-dialog-panel">
+        <header class="modal-header">
+          <h2 id="ui-dialog-title">Ação</h2>
+          <button id="ui-dialog-close-btn" class="btn ghost">Fechar</button>
+        </header>
+
+        <p id="ui-dialog-message" class="muted" style="margin-bottom: 12px"></p>
+
+        <div id="ui-dialog-input-wrap" class="field hidden">
+          <label for="ui-dialog-input" id="ui-dialog-label">Valor</label>
+          <input id="ui-dialog-input" type="text" />
+        </div>
+
+        <footer class="modal-footer" style="margin-top: 12px">
+          <button id="ui-dialog-cancel-btn" class="btn secondary">Cancelar</button>
+          <button id="ui-dialog-confirm-btn" class="btn primary">Confirmar</button>
+        </footer>
+      </article>
+    </section>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

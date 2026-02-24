@@ -330,7 +330,7 @@ function renderKanban(state) {
     <div class="card kanban-embedded-card">
       <iframe
         class="kanban-embed-frame"
-        src="./kanban/"
+        src="./kanban/embed.html"
         title="Kanban Integrado"
         loading="lazy"
       ></iframe>
