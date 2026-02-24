@@ -60,36 +60,54 @@
     <section id="card-modal" class="modal hidden" aria-hidden="true">
       <div class="modal-backdrop" data-close-modal="true"></div>
       <article class="modal-panel modal-grande">
+        <!-- Header com título editável inline -->
         <header class="modal-header">
-          <h2>Editar cartão</h2>
-          <button id="close-modal-btn" class="btn ghost">Fechar</button>
+          <div class="modal-header-left">
+            <div class="modal-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+            </div>
+            <div class="modal-title-area">
+              <input id="card-title-input" type="text" class="modal-title-input" placeholder="Título do cartão" />
+            </div>
+          </div>
+          <button id="close-modal-btn" class="btn ghost modal-close-x" title="Fechar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </header>
 
-        <div class="field">
-          <label for="card-title-input">Título</label>
-          <input id="card-title-input" type="text" placeholder="Título do cartão" />
-        </div>
-
-        <div class="modal-grid">
-          <section>
-            <div class="field">
-              <label>Descrição</label>
+        <div class="modal-body">
+          <!-- Coluna principal -->
+          <div class="modal-main">
+            <!-- Descrição -->
+            <section class="modal-section">
+              <div class="section-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+                <h3>Descrição</h3>
+              </div>
               <div id="card-description" class="description-editor" contenteditable="true"></div>
-              <small class="muted">Dica: Ctrl+V com imagem/arquivo ou texto aqui.</small>
-            </div>
+              <small class="muted">Dica: Cole imagens ou texto com Ctrl+V</small>
+            </section>
 
-            <div class="field">
-              <label>Rótulos do quadro</label>
-              <div class="inline-row">
-                <input id="new-label-name" type="text" placeholder="Nome do rótulo" />
-                <input id="new-label-color" type="color" value="#4f6ef7" />
-                <button id="add-label-btn" class="btn secondary">Adicionar rótulo</button>
+            <!-- Rótulos -->
+            <section class="modal-section">
+              <div class="section-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                <h3>Rótulos</h3>
               </div>
               <div id="label-picker" class="label-picker"></div>
-            </div>
+              <div class="label-add-row">
+                <input id="new-label-name" type="text" placeholder="Nome do rótulo" />
+                <input id="new-label-color" type="color" value="#4f6ef7" class="color-swatch" />
+                <button id="add-label-btn" class="btn secondary sm">+ Rótulo</button>
+              </div>
+            </section>
 
-            <div class="field">
-              <label>Prazo</label>
+            <!-- Prazo -->
+            <section class="modal-section">
+              <div class="section-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <h3>Prazo</h3>
+              </div>
               <div class="inline-row">
                 <input id="due-input" type="datetime-local" />
                 <label class="check-inline">
@@ -97,50 +115,83 @@
                   Concluído
                 </label>
               </div>
-            </div>
+            </section>
 
-            <div class="field">
-              <label>Capa do cartão</label>
+            <!-- Capa -->
+            <section class="modal-section">
+              <div class="section-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <h3>Capa do cartão</h3>
+              </div>
               <div class="inline-row">
-                <input id="cover-color" type="color" value="#4f6ef7" />
-                <button id="set-cover-color-btn" class="btn secondary">Usar cor</button>
-                <button id="clear-cover-btn" class="btn ghost">Remover capa</button>
+                <input id="cover-color" type="color" value="#4f6ef7" class="color-swatch" />
+                <button id="set-cover-color-btn" class="btn secondary sm">Usar cor</button>
+                <button id="clear-cover-btn" class="btn ghost sm">Remover</button>
               </div>
               <div id="cover-attachment-picker" class="attachment-cover-picker"></div>
-            </div>
-          </section>
+            </section>
 
-          <section>
-            <h3>Checklist</h3>
-            <div class="checklist-add">
-              <input id="checklist-input" type="text" placeholder="Novo item do checklist" />
-              <button id="add-checklist-btn" class="btn secondary">Adicionar</button>
-            </div>
-            <ul id="checklist-list" class="checklist-list"></ul>
+            <!-- Comentários -->
+            <section class="modal-section">
+              <div class="section-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <h3>Comentários</h3>
+              </div>
+              <div class="comment-form">
+                <input id="comment-input" type="text" placeholder="Escreva um comentário..." />
+                <button id="add-comment-btn" class="btn primary sm">Enviar</button>
+              </div>
+              <ul id="comments-list" class="simple-list"></ul>
+            </section>
+          </div>
 
-            <h3>Anexos</h3>
-            <div class="attachment-actions">
-              <button id="add-attachment-btn" class="btn secondary">Adicionar arquivo</button>
-              <input id="attachment-file-input" type="file" accept="image/*" hidden multiple />
-            </div>
-            <div id="drop-zone" class="drop-zone">Arraste arquivos aqui</div>
-            <ul id="attachment-list" class="attachment-list"></ul>
+          <!-- Sidebar do modal -->
+          <div class="modal-sidebar">
+            <!-- Checklist -->
+            <section class="modal-section">
+              <div class="section-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                <h3>Checklist</h3>
+              </div>
+              <div id="checklist-progress" class="checklist-progress"></div>
+              <div class="checklist-add">
+                <input id="checklist-input" type="text" placeholder="Novo item..." />
+                <button id="add-checklist-btn" class="btn secondary sm">+</button>
+              </div>
+              <ul id="checklist-list" class="checklist-list"></ul>
+            </section>
 
-            <h3>Comentários</h3>
-            <div class="inline-row">
-              <input id="comment-input" type="text" placeholder="Escreva um comentário" />
-              <button id="add-comment-btn" class="btn secondary">Comentar</button>
-            </div>
-            <ul id="comments-list" class="simple-list"></ul>
+            <!-- Anexos -->
+            <section class="modal-section">
+              <div class="section-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                <h3>Anexos</h3>
+              </div>
+              <div class="attachment-actions">
+                <button id="add-attachment-btn" class="btn secondary sm" style="width:100%">+ Adicionar arquivo</button>
+                <input id="attachment-file-input" type="file" accept="image/*" hidden multiple />
+              </div>
+              <div id="drop-zone" class="drop-zone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Arraste aqui</span>
+              </div>
+              <ul id="attachment-list" class="attachment-list"></ul>
+            </section>
 
-            <h3>Atividade</h3>
-            <ul id="activity-list" class="simple-list"></ul>
-          </section>
+            <!-- Atividade -->
+            <section class="modal-section">
+              <div class="section-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <h3>Atividade</h3>
+              </div>
+              <ul id="activity-list" class="simple-list"></ul>
+            </section>
+          </div>
         </div>
 
         <footer class="modal-footer">
-          <button id="archive-card-btn" class="btn secondary">Arquivar cartão</button>
-          <button id="delete-card-btn" class="btn danger">Excluir cartão</button>
+          <button id="archive-card-btn" class="btn secondary">Arquivar</button>
+          <button id="delete-card-btn" class="btn danger">Excluir</button>
           <button id="save-card-btn" class="btn primary">Salvar cartão</button>
         </footer>
       </article>

@@ -268,13 +268,7 @@ body {
    ═══════════════════════════════════════════════ */
 .content {
   padding: 28px 32px;
-  max-width: 1140px;
   overflow-x: hidden;
-}
-
-/* Kanban view uses full width */
-#kanban.view.active {
-  max-width: none;
 }
 
 #kanban .page-header {

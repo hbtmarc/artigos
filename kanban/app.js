@@ -63,6 +63,7 @@ const dom = {
   checklistInput: document.querySelector("#checklist-input"),
   addChecklistBtn: document.querySelector("#add-checklist-btn"),
   checklistList: document.querySelector("#checklist-list"),
+  checklistProgress: document.querySelector("#checklist-progress"),
 
   addAttachmentBtn: document.querySelector("#add-attachment-btn"),
   attachmentFileInput: document.querySelector("#attachment-file-input"),
@@ -102,6 +103,7 @@ const dom = {
 let sortableLists = null;
 const sortableCardLists = [];
 const attachmentPreviewUrls = [];
+let cardDragInProgress = false;
 let dialogResolver = null;
 let dialogMode = null;
 
@@ -461,12 +463,30 @@ function renderLists() {
                   .map((label) => `<span class="rotulo-chip" style="background:${label.color}"></span>`)
                   .join("");
                 const checklistDone = card.checklist.filter((item) => item.done).length;
+                const checklistPreview = card.checklist
+                  .slice(0, 3)
+                  .map(
+                    (item) => `
+                      <li class="card-check-item ${item.done ? "done" : ""}">
+                        <button class="card-check-toggle" data-action="toggle-check-preview" data-card-id="${card.id}" data-check-id="${item.id}" aria-label="Marcar item ${item.text}">${item.done ? "✓" : ""}</button>
+                        <span class="card-check-text">${item.text}</span>
+                      </li>
+                    `
+                  )
+                  .join("");
+                const checklistRemainder = card.checklist.length > 3 ? card.checklist.length - 3 : 0;
                 return `
                   <article class="cartao" data-card-id="${card.id}">
                     ${card.cover?.type === "color" ? `<div class="cartao-capa" style="background:${card.cover.value}"></div>` : ""}
                     ${card.cover?.type === "attachment" ? `<div class="cartao-capa" style="background-image:url(${card.cover.value})"></div>` : ""}
                     <div class="rotulos">${labels}</div>
                     <h4>${card.title}${card.archived ? " (arquivado)" : ""}</h4>
+                    ${card.checklist.length
+                      ? `<ul class="card-checklist-preview">
+                          ${checklistPreview}
+                          ${checklistRemainder ? `<li class="card-check-more">+${checklistRemainder} item(ns)</li>` : ""}
+                        </ul>`
+                      : ""}
                     <div class="badges">
                       ${card.checklist.length ? `<span class="badge">Checklist ${checklistDone}/${card.checklist.length}</span>` : ""}
                       ${card.attachments.length ? `<span class="badge">Anexos ${card.attachments.length}</span>` : ""}
@@ -654,6 +674,15 @@ function renderCardLabels(card) {
 }
 
 function renderChecklist(card) {
+  const total = card.checklist.length;
+  const done = card.checklist.filter((i) => i.done).length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  dom.checklistProgress.innerHTML = total
+    ? `<span class="checklist-progress-text">${done}/${total} concluídos</span>
+       <div class="checklist-progress-bar"><div class="checklist-progress-fill" style="width:${pct}%"></div></div>`
+    : "";
+
   dom.checklistList.innerHTML = card.checklist
     .map(
       (item) => `
@@ -662,7 +691,7 @@ function renderChecklist(card) {
           <input type="checkbox" data-action="toggle-check" data-check-id="${item.id}" ${item.done ? "checked" : ""}>
           <span class="${item.done ? "checklist-done" : ""}">${item.text}</span>
         </div>
-        <button class="btn ghost" data-action="delete-check" data-check-id="${item.id}">Excluir</button>
+        <button class="btn ghost sm" data-action="delete-check" data-check-id="${item.id}">Excluir</button>
       </li>
     `
     )
@@ -822,6 +851,16 @@ function bindSortables() {
       group: "cards",
       animation: 140,
       draggable: ".cartao",
+      filter: ".card-check-toggle",
+      delayOnTouchOnly: true,
+      delay: 120,
+      touchStartThreshold: 4,
+      ghostClass: "cartao-ghost",
+      chosenClass: "cartao-chosen",
+      dragClass: "cartao-drag",
+      onStart() {
+        cardDragInProgress = true;
+      },
       onEnd() {
         dom.listsRow.querySelectorAll(".cartoes").forEach((cardsEl) => {
           const columnId = cardsEl.dataset.columnId;
@@ -835,6 +874,9 @@ function bindSortables() {
           });
         });
         saveState();
+        setTimeout(() => {
+          cardDragInProgress = false;
+        }, 0);
       }
     });
     sortableCardLists.push(sortable);
@@ -852,6 +894,7 @@ async function handleListsClick(event) {
   const cardEl = event.target.closest(".cartao");
 
   if (cardEl && !actionBtn) {
+    if (cardDragInProgress) return;
     openCard(cardEl.dataset.cardId);
     return;
   }
@@ -868,6 +911,19 @@ async function handleListsClick(event) {
   if (action === "archive-list") await toggleArchiveList(columnId);
   if (action === "delete-list") await deleteList(columnId);
   if (action === "quick-add-card") await quickAddCard(columnId);
+  if (action === "toggle-check-preview") {
+    const checkId = actionBtn.dataset.checkId;
+    const targetCard = state.cards.find((item) => item.id === cardId);
+    if (targetCard && checkId) {
+      const checkItem = targetCard.checklist.find((entry) => entry.id === checkId);
+      if (checkItem) {
+        checkItem.done = !checkItem.done;
+        targetCard.updatedAt = nowISO();
+        await saveState();
+        renderAll();
+      }
+    }
+  }
   if (action === "restore-list") {
     const column = state.columns.find((item) => item.id === columnId);
     if (column) {

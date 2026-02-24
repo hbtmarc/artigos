@@ -327,6 +327,7 @@ body {
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  min-height: 46px;
 }
 
 .cartao {
@@ -334,9 +335,27 @@ body {
   background: var(--surface);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
-  cursor: pointer;
+  cursor: grab;
   box-shadow: var(--shadow-xs);
   transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
+}
+
+.cartao:active {
+  cursor: grabbing;
+}
+
+.cartao-chosen {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  transform: rotate(0.3deg);
+}
+
+.cartao-ghost {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.cartao-drag {
+  transform: rotate(0.6deg);
 }
 
 .cartao:hover {
@@ -370,6 +389,70 @@ body {
   font-size: 0.88rem;
   font-weight: 600;
   line-height: 1.35;
+}
+
+.card-checklist-preview {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0 8px;
+}
+
+.card-check-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 0;
+}
+
+.card-check-toggle {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface);
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.14s var(--ease);
+}
+
+.card-check-toggle:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.card-check-item.done .card-check-toggle {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.card-check-text {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.card-check-item.done .card-check-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.card-check-more {
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding-left: 20px;
 }
 
 .badges {
@@ -466,7 +549,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════
-   Modais
+   Modal — Card editor
    ═══════════════════════════════════════════════ */
 .modal {
   position: fixed;
@@ -477,26 +560,26 @@ body {
 .modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(16, 22, 35, 0.4);
-  backdrop-filter: blur(3px);
+  background: rgba(16, 22, 35, 0.45);
+  backdrop-filter: blur(4px);
 }
 
 .modal-panel {
   position: relative;
   width: min(640px, 94vw);
-  margin: 32px auto;
-  max-height: calc(100vh - 64px);
+  margin: 28px auto;
+  max-height: calc(100vh - 56px);
   overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  padding: 22px;
+  padding: 0;
   animation: fadeUp 0.22s var(--ease) both;
 }
 
 .modal-grande {
-  width: min(880px, 96vw);
+  width: min(920px, 96vw);
 }
 
 @keyframes fadeUp {
@@ -504,107 +587,165 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── Header ─── */
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
-.modal-header h2 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.modal-footer {
+.modal-header-left {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-light);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.modal-title-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  letter-spacing: -0.01em;
+  transition: background 0.15s var(--ease);
+}
+
+.modal-title-input:hover {
+  background: var(--surface-2);
+}
+
+.modal-title-input:focus {
+  background: var(--surface-2);
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.12);
+}
+
+.modal-title-input::placeholder {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.modal-close-x {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.modal-close-x:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* ─── Body 2-column ─── */
+.modal-body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 0;
+  min-height: 0;
+}
+
+.modal-main {
+  padding: 20px 24px;
+  border-right: 1px solid var(--border);
+}
+
+.modal-sidebar {
+  padding: 20px 20px;
+  background: var(--bg);
+}
+
+/* ─── Section block ─── */
+.modal-section {
+  margin-bottom: 22px;
+}
+
+.modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+  margin-bottom: 10px;
 }
 
-.modal-footer .btn:first-child {
-  margin-right: auto;
+.section-header svg {
+  color: var(--muted);
+  flex-shrink: 0;
 }
 
-.modal-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-/* ─── Campos do modal ─── */
-.field {
-  margin-bottom: 14px;
-}
-
-.field label,
-.field > h3 {
-  display: block;
+.section-header h3 {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+  margin: 0;
 }
 
-.field input,
-.field select,
-.field textarea {
-  width: 100%;
+/* ─── Description ─── */
+.description-editor {
+  min-height: 110px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font: inherit;
-  font-size: 0.88rem;
+  padding: 12px 14px;
   background: var(--surface);
-  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.6;
   outline: none;
   transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
 
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.1);
-}
-
-.description-editor {
-  min-height: 100px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  background: var(--surface);
-  font-size: 0.88rem;
-  line-height: 1.55;
-  outline: none;
-  transition: border-color 0.18s var(--ease);
+.description-editor:hover {
+  border-color: var(--surface-3);
 }
 
 .description-editor:focus {
   border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.08);
 }
 
-.inline-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
+.modal-section > small {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.74rem;
 }
 
-/* ─── Rótulos picker ─── */
+/* ─── Labels ─── */
 .label-picker,
 .attachment-cover-picker {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
+  margin-bottom: 10px;
 }
 
 .label-item {
@@ -613,7 +754,7 @@ body {
   gap: 5px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   font-size: 0.78rem;
   font-weight: 500;
   background: var(--surface);
@@ -623,6 +764,7 @@ body {
 
 .label-item:hover {
   background: var(--surface-2);
+  transform: translateY(-1px);
 }
 
 .label-item.ativo {
@@ -631,41 +773,149 @@ body {
   color: var(--accent);
 }
 
-/* ─── Checklist ─── */
-.checklist-add,
-.attachment-actions {
+.label-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.label-add-row input[type="text"] {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+
+.label-add-row input[type="text"]:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.1);
+}
+
+.color-swatch {
+  width: 30px;
+  height: 30px;
+  padding: 1px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ─── Comment form ─── */
+.comment-form {
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
 }
 
-.checklist-list,
-.attachment-list,
-.simple-list {
+.comment-form input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.84rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.18s var(--ease);
+}
+
+.comment-form input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.1);
+}
+
+/* ─── Checklist ─── */
+.checklist-progress {
+  margin-bottom: 10px;
+}
+
+.checklist-progress-bar {
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.checklist-progress-fill {
+  height: 100%;
+  background: var(--success);
+  border-radius: 3px;
+  transition: width 0.3s var(--ease);
+}
+
+.checklist-progress-text {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.checklist-add {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.checklist-add input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+
+.checklist-add input:focus {
+  border-color: var(--border-focus);
+}
+
+.checklist-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
-.checklist-item,
-.attachment-item,
-.simple-list li {
+.checklist-item {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  padding: 7px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
   background: var(--surface);
-  font-size: 0.86rem;
+  font-size: 0.84rem;
+  transition: background 0.14s var(--ease);
+}
+
+.checklist-item:hover {
+  background: var(--surface-2);
 }
 
 .checklist-left {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.checklist-left input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
 }
 
 .checklist-done {
@@ -673,30 +923,61 @@ body {
   color: var(--muted);
 }
 
-/* ─── Anexos ─── */
+/* ─── Attachments ─── */
+.attachment-actions {
+  margin-bottom: 8px;
+}
+
+.attachment-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attachment-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  font-size: 0.82rem;
+}
+
 .attachment-preview {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .attachment-name {
   flex: 1;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   word-break: break-word;
 }
 
 .drop-zone {
   border: 2px dashed var(--border);
   border-radius: var(--radius-sm);
-  padding: 14px;
+  padding: 16px;
   text-align: center;
   color: var(--muted);
-  font-size: 0.84rem;
-  margin-bottom: 10px;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
   transition: all 0.18s var(--ease);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.drop-zone svg {
+  opacity: 0.4;
 }
 
 .drop-zone.ativo {
@@ -705,14 +986,81 @@ body {
   background: var(--accent-light);
 }
 
-/* ─── Modal h3 sections ─── */
-.modal-panel h3 {
+.drop-zone.ativo svg {
+  opacity: 1;
+}
+
+/* ─── Simple list (comments, activity) ─── */
+.simple-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.simple-list li {
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  font-size: 0.82rem;
+  border: 1px solid transparent;
+  transition: background 0.14s var(--ease);
+}
+
+.simple-list li:hover {
+  background: var(--surface-2);
+}
+
+.simple-list li small {
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Footer ─── */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+
+.modal-footer .btn:first-child {
+  margin-right: auto;
+}
+
+/* ─── inline-row (reused in prazo, cover, etc) ─── */
+.inline-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ─── Modal h3 sections (archived modal) ─── */
+.modal-panel > h3 {
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin: 18px 0 10px;
+  margin: 18px 22px 10px;
+}
+
+/* Archived modal needs inner padding */
+#archived-modal .modal-panel {
+  padding: 22px;
 }
 
 /* ─── UI Dialog (substitui popups nativos) ─── */
@@ -794,8 +1142,15 @@ body {
     flex-basis: 100%;
     text-align: left;
   }
-  .modal-grid {
+  .modal-body {
     grid-template-columns: 1fr;
+  }
+  .modal-main {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-sidebar {
+    background: var(--surface);
   }
   .lista {
     width: 260px;
